@@ -1,0 +1,1344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Personality Reader</title>
+<style>
+:root{
+  --bg:#f3e9d2; --ink:#4a3b2a; --muted:#6f5f48; --soft:#c4b393; --faint:#dccfae;
+  --accent:#8a5230; --pos:#5d7a45; --neg:#a5503a; --slate:#58707e; --sel:#e2c9a0; --onaccent:#f7eedb;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Charter,Georgia,"Times New Roman",serif;
+}
+[data-theme=night]{--bg:#221b13;--ink:#e8dcc4;--muted:#b3a287;--soft:#6a5a43;--faint:#3a2f22;--accent:#e0a275;--pos:#a3c086;--neg:#df8a73;--slate:#8fb0c4;--sel:#5a4630;--onaccent:#221b13}
+*{box-sizing:border-box}
+html{background:var(--bg);font-size:19px;-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--ink);font-family:var(--serif);line-height:1.7;-webkit-font-smoothing:antialiased;hyphens:auto;text-wrap:pretty}
+::selection{background:var(--sel)}
+main{max-width:64rem;margin:0 auto;padding:5.5rem 1.5rem 6rem}
+.screen,footer{max-width:41rem;margin-left:0;margin-right:auto}
+#s-results{max-width:none}
+#s-results>*:not(#chapters){max-width:41rem}
+.tools{position:fixed;top:.6rem;right:.8rem;display:flex;gap:.1rem;z-index:5;background:var(--bg);border-radius:.6rem;opacity:.92}
+.tools button{font:inherit;font-size:.85rem;background:none;border:0;color:var(--muted);cursor:pointer;padding:.3rem .5rem;border-radius:.4rem}
+.tools button:hover{color:var(--accent);background:var(--faint)}
+h1,h2,h3,p{margin:0}
+.kicker{font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted);margin-bottom:1.2rem}
+h1{font-weight:400;font-size:2.7rem;line-height:1.15;letter-spacing:-.01em;margin-bottom:1.6rem}
+h2{font-weight:400;font-size:2rem;line-height:1.2;margin-bottom:1rem}
+.lede{font-style:italic;color:var(--muted);font-size:1.08rem;margin-bottom:3rem}
+.screen{animation:fade .6s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+[hidden]{display:none!important}
+button{font-family:inherit}
+.choice{display:block;width:100%;text-align:left;background:none;border:0;padding:0;margin:0 0 2.2rem;cursor:pointer;color:inherit}
+.choice .c-t{display:block;font-size:1.4rem;line-height:1.3;transition:color .2s,padding .2s}
+.choice .c-d{display:block;font-size:.95rem;color:var(--muted);font-style:italic;margin-top:.15rem}
+.choice:hover .c-t,.choice:focus-visible .c-t{color:var(--accent);padding-left:.5rem}
+.choice:focus-visible{outline:none}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:inherit;text-decoration:underline;text-decoration-color:var(--soft);text-underline-offset:.22em}
+.linkbtn:hover{text-decoration-color:var(--accent)}
+.primary{font-size:1.05rem;background:var(--accent);color:var(--onaccent);border:0;padding:.75rem 1.7rem;border-radius:2rem;cursor:pointer;letter-spacing:.02em;transition:background .2s,opacity .2s}
+.primary:hover{filter:brightness(.88)}
+.primary:disabled{opacity:.35;cursor:default}
+.back{margin-bottom:2.2rem;font-size:.9rem}
+.note{font-size:.9rem;color:var(--muted);font-style:italic}
+.banner{color:var(--accent);font-style:italic;margin:-1.4rem 0 2.2rem}
+
+/* sliders */
+.srow{margin:0 0 2.1rem}
+.s-top{display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
+.s-name{font-size:1.2rem}
+.s-cap{font-size:.85rem;color:var(--muted);font-style:italic;margin-left:.8rem}
+output{font-size:.88rem;color:var(--muted);white-space:nowrap}
+.srow.small{margin-bottom:1.5rem}.srow.small .s-name{font-size:1.02rem}
+input[type=range]{--fill:50%;-webkit-appearance:none;appearance:none;width:100%;height:1.8rem;background:transparent;margin:.2rem 0 0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(to right,var(--accent) var(--fill),var(--soft) var(--fill))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);margin-top:-8px;border:3px solid var(--bg);box-shadow:0 0 0 1px var(--accent)}
+input[type=range]::-moz-range-track{height:2px;background:var(--soft)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--accent)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--accent)}
+input[type=range]:focus-visible{outline:2px solid var(--soft);outline-offset:4px;border-radius:4px}
+.facet-group{margin:0 0 2.2rem}
+.fg-t{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+.facet-wrap{margin:2.4rem 0 1rem;padding-left:1.4rem}
+.actions{margin-top:3rem;display:flex;gap:2rem;align-items:center;flex-wrap:wrap}
+
+/* quiz */
+.q{margin:0 0 2.6rem}
+.q-t{font-size:1.15rem;margin-bottom:.5rem}
+.likert{display:flex;gap:.9rem;align-items:center;margin-top:.5rem}
+.likert .end{font-size:.8rem;color:var(--muted);font-style:italic;min-width:4.6rem}
+.likert .end:last-child{text-align:right}
+.likert label{cursor:pointer;position:relative}
+.likert input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.likert span.dot{display:block;width:1.7rem;height:1.7rem;border-radius:50%;border:1px solid var(--soft);transition:background .15s,border-color .15s}
+.likert label:hover span.dot{border-color:var(--accent)}
+.likert input:checked+span.dot{background:var(--accent);border-color:var(--accent)}
+.likert input:focus-visible+span.dot{outline:2px solid var(--accent);outline-offset:3px}
+.progress{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:2.5rem}
+
+/* results */
+.recap{color:var(--muted);font-size:.95rem;margin-bottom:.5rem}
+.chapter{margin:0}
+.ch-head{max-width:41rem;margin:0;display:grid;grid-template-columns:2.6rem 1fr 1.5rem;align-items:baseline;width:100%;background:none;border:0;text-align:left;padding:1.3rem 0;cursor:pointer;color:inherit}
+.ch-n{font-size:.9rem;color:var(--soft);letter-spacing:.1em}
+.ch-t{font-size:1.5rem;line-height:1.25;transition:color .2s}
+.ch-s{grid-column:2;font-size:.95rem;font-style:italic;color:var(--muted)}
+.ch-x{grid-column:3;grid-row:1;color:var(--soft);font-size:1.3rem;text-align:right;transition:transform .3s}
+.ch-head:hover .ch-t,.ch-head:focus-visible .ch-t{color:var(--accent)}
+.ch-head:focus-visible{outline:none}
+.ch-head[aria-expanded=true] .ch-x{transform:rotate(45deg)}
+.ch-body{padding:.4rem 0 2.8rem;animation:fade .5s ease both}
+.ch-body>*{max-width:41rem;margin-left:0;margin-right:auto;padding-left:2.6rem}
+.ch-body>.cols{max-width:none;padding-left:2.6rem}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:0 4rem}
+.cols .sub{margin-top:.4rem}
+.cols .item{margin-bottom:1.5rem}
+.spec{display:grid;grid-template-columns:7.5rem 1fr 7.5rem;align-items:center;gap:.8rem;margin:.7rem 0;font-size:.95rem}
+.spec span:first-child{text-align:right}
+.spec .on{color:var(--accent)}
+.spec span{color:var(--muted)}
+.ch-body p{margin-bottom:1.1rem}
+.ch-body .intro{color:var(--muted);font-style:italic}
+.sub{font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin:2.6rem 0 1rem}
+.sub:first-child{margin-top:.4rem}
+.meter{display:grid;grid-template-columns:9.5rem 1fr 4.2rem;align-items:center;gap:.8rem;margin:.55rem 0;font-size:.95rem}
+.m-track{position:relative;height:1.2rem}
+.m-track::before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--faint)}
+.m-track b{position:absolute;left:50%;top:.2rem;bottom:.2rem;width:2px;background:var(--soft);opacity:.7}
+.m-track i{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--accent)}
+.m-val{text-align:right;color:var(--muted);font-size:.85rem}
+.trait-block{margin:0 0 1.9rem}
+.tb-h{font-size:1.15rem}
+.tb-h em{font-size:.9rem;color:var(--muted)}
+.tb-f{font-size:.85rem;color:var(--muted);margin-bottom:.3rem}
+ul.items{list-style:none;margin:0;padding:0}
+.item{margin:0 0 1.7rem}
+.i-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem}
+.i-name{font-size:1.15rem}
+.dots{color:var(--accent);letter-spacing:.12em;font-size:.75rem;white-space:nowrap}
+.dots .off{color:var(--soft);opacity:.6}
+.i-desc{color:var(--muted);font-size:.95rem;margin:0!important}
+.why-btn{font-size:.82rem;margin-top:.2rem}
+.why{font-size:.9rem;font-style:italic;color:var(--muted);margin:.3rem 0 0!important}
+.fit{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.fit.low{color:var(--muted)}
+.theme{margin:0 0 1.7rem}
+.theme h3{font-weight:400;font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+.theme p{margin-bottom:.5rem}
+.prow{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin:0 0 1.2rem}
+.pr-names{display:block;font-size:1.05rem;line-height:1.45}
+.pr-sub{display:block;font-size:.85rem;color:var(--muted);font-style:italic}
+.pr-r{font-size:1.05rem;color:var(--muted);white-space:nowrap}
+.lv{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.lv.dn{color:var(--muted)}
+.cols.flow .pair{margin:0 0 1.4rem}
+.pair{margin:0 0 1.6rem}
+.pair .p-h{font-size:1.08rem}
+.pair .p-r{font-size:.8rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.pair .p-t{font-size:.95rem;color:var(--muted);margin:.15rem 0 0!important}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.verdict{font-size:1.3rem;line-height:1.5;margin-bottom:1.2rem!important}
+.hm{max-width:44rem;display:grid;grid-template-columns:8.2rem repeat(10,1fr);gap:3px;margin:1.2rem 0 .5rem;font-size:.68rem}
+.hm .hl{display:flex;align-items:center;color:var(--muted);font-size:.8rem}
+.hm .hc{text-align:center;color:var(--muted);font-size:.64rem;letter-spacing:.05em;padding-bottom:.2rem}
+.hm .cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:default;color:var(--ink);outline:none}
+.hm .cell:hover,.hm .cell:focus{box-shadow:0 0 0 2px var(--accent)}
+#hm-cap{min-height:3.2rem;font-size:.92rem;font-style:italic;color:var(--muted)}
+.regions-inline{display:flex;flex-wrap:wrap;gap:.2rem 1.2rem;margin:.4rem 0 1.4rem}
+.rg-line{display:grid;grid-template-columns:7rem 1fr;gap:.2rem .8rem;font-size:.95rem;margin:.5rem 0}
+.rg-line b{font-weight:400;color:var(--muted)}
+.match{margin:0 0 1.4rem}
+.match .mt{font-size:1.12rem}
+.match .md{font-size:.85rem;color:var(--muted)}
+.match .md i{color:var(--accent);font-style:normal}
+footer{margin-top:4rem;font-size:.88rem;color:var(--muted)}
+footer p{margin-bottom:.9rem}
+
+/* charts */
+.ch-body>.wide{max-width:none;padding-left:2.6rem}
+.ch-body>.rbar{padding-left:2.6rem}
+.cp-l,.cp-a{paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round}
+.bells{display:grid;grid-template-columns:repeat(auto-fit,minmax(6.6rem,1fr));gap:.6rem .4rem;margin:1.4rem 0 .6rem}
+.bell{text-align:center}.bell svg{width:100%;height:auto;display:block}
+.b-n{font-size:.6rem;letter-spacing:.03em;white-space:nowrap;text-transform:uppercase;color:var(--muted);overflow-wrap:anywhere}
+.b-v{font-size:.82rem;color:var(--ink)}
+.bell .c-fill{fill:var(--accent);opacity:.28}.bell .c-line{fill:none;stroke:var(--soft);stroke-width:1}.bell .c-base{stroke:var(--soft);stroke-width:.8}
+.bell .c-mark{stroke:var(--accent);stroke-width:1.6}.bell .c-dot{fill:var(--accent);stroke:var(--bg);stroke-width:1.5}
+.fgrp{margin:0 0 1rem}
+.fbar,.xva,.fit-row,.rbar{display:grid;grid-template-columns:11rem 1fr 7.5rem;gap:.8rem;align-items:center;font-size:.92rem;margin:.28rem 0}
+.fbar>span:first-child,.xva>span:first-child,.rbar>span:first-child{color:var(--ink)}
+.fbar>span:last-child,.xva>span:last-child,.rbar>span:last-child{color:var(--muted);font-size:.82rem}
+.tk{position:relative;height:1.3rem}
+.tk::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--faint)}
+.tk .mid{position:absolute;left:50%;top:.15rem;bottom:.15rem;width:1px;background:var(--soft)}
+.tk .fill{position:absolute;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:var(--accent)}
+.tk .fill.dn{background:var(--slate)}
+.tk .band{position:absolute;top:50%;height:12px;margin-top:-6px;background:var(--soft);opacity:.3;border-radius:6px}
+.tk .ex{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;border:2px solid var(--accent);background:var(--bg)}
+.tk .ac,.tk .you{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--bg)}
+.tk .them{position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;background:var(--slate);transform:rotate(45deg);box-shadow:0 0 0 2px var(--bg)}
+.tk .cn{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--accent);opacity:.7}
+.tk .cn.s{background:var(--slate)}
+.ax{margin:.4rem 0 .1rem}.ax>span:first-child{color:var(--muted)}
+.axc{position:relative;display:block;height:1rem}
+.axc span{position:absolute;transform:translateX(-50%);white-space:nowrap;font-size:.7rem;color:var(--muted)}
+.axis{position:relative;height:1.1rem;margin-left:11.8rem;margin-right:8.3rem;font-size:.7rem;color:var(--muted)}
+.axis span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.legend{font-size:.82rem;color:var(--muted);font-style:italic;margin:.2rem 0 1rem}
+.legend i{font-style:normal;color:var(--accent)}
+.fit-row{grid-template-columns:13rem 1fr}
+.fr-t{position:relative;height:1.1rem;display:block}
+.fr-bar{position:absolute;left:0;top:.3rem;height:.5rem;border-radius:0 .25rem .25rem 0;background:var(--accent);opacity:.85}
+.fr-o{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;transform:rotate(45deg);border:2px solid var(--slate);background:var(--bg)}
+.rbar{grid-template-columns:13rem 1fr 2.8rem;background:none;border:0;padding:.15rem 0;width:100%;text-align:left;color:inherit;cursor:pointer;font-family:inherit}
+.rbar:hover>span:first-child,.rbar[aria-pressed=true]>span:first-child{color:var(--accent)}
+.rbar .fill{height:7px;margin-top:-3.5px}
+.compass{width:100%;height:auto;display:block;margin:.6rem 0 1.4rem;max-width:44rem}
+.compass text{font-family:inherit}
+.cp-l{fill:var(--ink);font-size:11px}.cp-a{fill:var(--muted);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase}
+.cp-g{stroke:var(--faint);stroke-width:1}.cp-y{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:3 3}
+.story{margin:0 0 1.6rem}
+.st-name{font-size:1.2rem;line-height:1.3}
+.st-tags{font-size:.88rem;color:var(--muted);margin:.15rem 0 .5rem}
+.story p{margin-bottom:.5rem!important}
+.px{min-height:9rem;margin-top:1.2rem}
+.px-t{font-size:1.2rem}.px-s{font-size:.88rem;font-style:italic;color:var(--muted);margin-bottom:.5rem}
+.hm .cell.fade{opacity:.4}.hm .cell.odd{box-shadow:inset 0 0 0 2px var(--accent)}
+.hm .hc{line-height:1.15}.hm .lg{color:var(--accent);font-size:.7rem}
+.tilemap{display:grid;grid-template-columns:repeat(9,1fr);grid-auto-rows:1fr;gap:6px;max-width:46rem;margin:.8rem 0}
+.tile{position:relative;aspect-ratio:1;border:0;border-radius:8px;background:none;color:var(--ink);font:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;padding:.2rem;line-height:1.15}
+.tile::before{content:"";position:absolute;inset:0;border-radius:8px;background:var(--accent);opacity:var(--o)}
+.tile.dn::before{background:var(--slate)}
+.tile>*{position:relative}.tile b{font-weight:400;font-size:.74rem}.tile span{font-size:.7rem;opacity:.85}
+.tile:hover,.tile[aria-pressed=true]{box-shadow:0 0 0 2px var(--accent)}
+.tk .rt{position:absolute;top:50%;width:2px;height:12px;margin:-6px 0 0 -1px;background:var(--slate)}
+@media (max-width:700px){.tilemap{display:none}}
+@media (max-width:560px){.axc span:first-child,.axc span:last-child{display:none}}
+.oc{margin:0 0 1.15rem}.oc-h{display:flex;justify-content:space-between;gap:1rem;font-size:.95rem}.oc-h span:last-child{color:var(--muted);font-size:.82rem;white-space:nowrap}.oc .tk{display:block}.tk .you.dn{background:var(--slate)}.odom p{margin-bottom:.8rem}
+.vb{font-size:.95rem;color:var(--accent);margin-bottom:1.6rem}.vb button{margin-left:.6rem}
+.code-row{display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap;margin:.6rem 0}
+.code-row input[type=text],.cmp-in .code-row input{font:inherit;color:var(--ink);background:none;border:0;border-bottom:1px solid var(--soft);padding:.2rem 0;width:18rem;max-width:100%;margin:0}
+.code-row input:focus{outline:none;border-color:var(--accent)}
+#my-code{letter-spacing:.05em}
+.sharebox{margin-bottom:2rem}
+.pf{display:flex;gap:.2rem 1rem;flex-wrap:wrap;align-items:baseline;margin:.5rem 0}.pf b{font-weight:400;min-width:8rem}.pf .linkbtn{font-size:.88rem}
+body.viewing [data-addfacets]{display:none}
+.ev-note{font-size:.8rem;font-style:italic;color:var(--muted);margin-top:2.2rem!important}
+.ev{font-style:normal;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+.cmp-in{margin:1rem 0 2rem}
+.cmp-in input[type=text]{font:inherit;color:var(--ink);background:none;border:0;border-bottom:1px solid var(--soft);padding:.2rem 0;width:14rem;margin-bottom:1.6rem}
+.cmp-in input[type=text]:focus{outline:none;border-color:var(--accent)}
+@media print{
+  .tools,.back,.actions,.ch-x,#about,.linkbtn,[data-toggle],.note button{display:none!important}
+  html{font-size:13px;background:#fff}body{color:#222}:root{--bg:#fff}
+  .ch-body{display:block!important}.ch-body[hidden]{display:block!important}
+  .chapter{break-inside:avoid-page}main{padding:1rem}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (max-width:560px){
+  .fbar,.xva{grid-template-columns:6.4rem 1fr 4.6rem;font-size:.8rem}.axis{margin-left:7.2rem;margin-right:5.4rem}
+  .fit-row{grid-template-columns:7.2rem 1fr;font-size:.8rem}.rbar{grid-template-columns:7.4rem 1fr 2.4rem;font-size:.8rem}
+  .ch-body>.wide{padding-left:0}
+  html{font-size:17px}h1{font-size:2.1rem}main{padding-top:4rem}
+  .ch-body>*{padding-left:0}.cols{grid-template-columns:1fr;gap:0}.spec{grid-template-columns:4.6rem 1fr 4.6rem;font-size:.82rem}.meter{grid-template-columns:7rem 1fr 3.5rem}
+  .hm{grid-template-columns:5.6rem repeat(10,1fr)}.hm .hl{font-size:.68rem}
+  .likert{gap:.5rem}.likert span.dot{width:1.5rem;height:1.5rem}.likert .end{min-width:3rem;font-size:.7rem}
+}
+</style>
+</head>
+<body>
+<div class="tools"><button id="fsm" aria-label="Smaller text">A−</button><button id="fsp" aria-label="Larger text">A+</button><button id="theme" aria-label="Toggle night theme">Night</button></div>
+<main>
+
+<section id="s-start" class="screen">
+  <div class="kicker">A Personality Reader</div>
+  <h1>What your temperament suggests</h1>
+  <p class="lede">Decades of research connect the Big Five traits to what people enjoy, how they work, whom they befriend and love, and even where in the world their profile is most common. Tell me where you stand, then choose what you would like to read. Nothing here is a verdict; these are tendencies.</p>
+  <button class="choice" data-go="enter"><span class="c-t">I know my Big Five scores</span><span class="c-d">Enter five numbers, and, if you like, ten finer facets.</span></button>
+  <button class="choice" data-quiz="quick"><span class="c-t">I don’t. Ask me ten questions.</span><span class="c-d">About two minutes. A rough sketch of the five traits.</span></button>
+  <button class="choice" data-quiz="long"><span class="c-t">Give me the longer quiz</span><span class="c-d">Forty questions. Reveals the ten facets beneath the traits.</span></button>
+  <p class="note" style="margin-top:.4rem">Have a code from someone? <button class="linkbtn" data-toggle="start-code" data-off="Open it" data-on="Hide">Open it</button></p>
+  <div id="start-code" hidden class="code-row"><input type="text" id="start-code-in" placeholder="Paste a code, like PR-…" aria-label="Profile code"><button class="linkbtn" id="start-open">Open reading</button><span class="note" id="start-msg"></span></div>
+  <p class="note" id="resume" hidden>You have scores saved from last time. <button class="linkbtn" data-go="results">Open my reading</button></p>
+</section>
+
+<section id="s-enter" class="screen" hidden>
+  <div class="back"><button class="linkbtn" data-go="start">← Back</button></div>
+  <h2>Where do you stand?</h2>
+  <p class="lede" style="margin-bottom:2.2rem">Set each slider to your percentile, which is how you compare with most adults. Halfway is average. If your test reports T-scores, 40 is about the 16th percentile, 50 the 50th, and 60 the 84th.</p>
+  <p class="banner" id="quiz-banner" hidden></p>
+  <div id="trait-sliders"></div>
+  <div style="margin-top:.4rem"><button class="linkbtn" id="facet-toggle" aria-expanded="false">Add finer detail: the ten facets (optional)</button></div>
+  <div class="facet-wrap" id="facet-wrap" hidden>
+    <p class="note" style="margin-bottom:1.6rem">Each trait splits into two aspects (DeYoung, Quilty &amp; Peterson, 2007). Moving a trait slider shifts both of its facets together; moving a facet adjusts the trait to their average.</p>
+    <div id="facet-sliders"></div>
+  </div>
+  <div class="actions">
+    <button class="primary" id="reveal">Show me what this suggests</button>
+    <span class="note">Not sure? <button class="linkbtn" data-quiz="quick">Ten questions</button> · <button class="linkbtn" data-quiz="long">Forty questions</button></span>
+  </div>
+</section>
+
+<section id="s-quiz" class="screen" hidden>
+  <div class="back"><button class="linkbtn" id="quiz-back">← Back</button></div>
+  <div class="progress" id="quiz-progress"></div>
+  <div id="quiz-body"></div>
+  <div class="actions"><button class="primary" id="quiz-next" disabled>Continue</button><span class="note" id="quiz-left"></span></div>
+</section>
+
+<section id="s-results" class="screen" hidden>
+  <div id="view-banner" class="vb" hidden></div>
+  <div class="kicker">Your reading</div>
+  <h1 style="font-size:2.2rem">Choose what to unfold</h1>
+  <p class="lede" style="margin-bottom:1rem">Open only the chapters you’re curious about. Correlations in personality research are real but modest, so read each one as “people like you often…”, never “you are…”.</p>
+  <p class="recap" id="recap"></p>
+  <p class="note" style="margin-bottom:2.2rem"><button class="linkbtn" data-go="enter" id="adjust-top">Adjust my scores</button> · <button class="linkbtn" data-addfacets id="addfacets-top">Add facets for finer detail</button> · <button class="linkbtn" data-go="start">Start over</button> · <button class="linkbtn" id="print-btn">Print or save as PDF</button> · <button class="linkbtn" data-toggle="share-panel" data-off="Share and saved profiles ▾" data-on="Hide sharing ▴">Share and saved profiles ▾</button></p>
+  <div id="share-panel" hidden class="sharebox">
+    <div class="sub">My code</div>
+    <div class="code-row"><input type="text" id="my-code" readonly aria-label="My profile code"><button class="linkbtn" id="copy-code">Copy</button><span class="note" id="copy-msg"></span></div>
+    <div class="code-row" style="margin-top:.6rem"><input type="text" id="code-name" maxlength="24" placeholder="Add a name to the code (optional)" aria-label="Name to include in code"></div>
+    <p class="note">Anyone with this code can open your reading in their copy of this page. It holds only your scores and the optional name, so share it only with people you would show the results to.</p>
+    <div class="sub">Open someone’s code</div>
+    <div class="code-row"><input type="text" id="open-code" placeholder="Paste a code, like PR-…" aria-label="Paste a code"><button class="linkbtn" id="open-btn">Open reading</button></div>
+    <p class="note" id="open-msg"></p>
+    <div class="sub">Saved profiles</div>
+    <div class="code-row"><input type="text" id="save-name" maxlength="24" placeholder="Name this profile" aria-label="Profile name"><button class="linkbtn" id="save-btn">Save current</button></div>
+    <div id="saved-list"></div>
+  </div>
+  <div id="chapters"></div>
+</section>
+
+<footer id="about">
+  <button class="linkbtn" data-toggle="about-body" data-off="About this reader and its sources" data-on="Hide the about note">About this reader and its sources</button>
+  <div id="about-body" hidden style="margin-top:1.2rem">
+    <p>The ten facets (“aspects”) and their correlations follow DeYoung, Quilty &amp; Peterson (2007), with values rounded and approximate. Regional offsets are modeled on the T-score approach of Schmitt et al. (2007), with rank orderings informed by McCrae &amp; Terracciano (2005), Allik &amp; McCrae (2004) and, for US regions, Rentfrow et al. (2013). They are illustrative: real regional differences are modest (typically 0.2–0.5 SD), cross-cultural self-reports are noisy, and any individual differs from their region far more than regions differ from each other.</p>
+    <p>The interest, career, friend and partner estimates are a hand-built synthesis of general findings (for example, openness with intellectual and artistic pursuits, conscientiousness with job performance, partner emotional stability and agreeableness with relationship satisfaction). They are informed approximations, not direct measurements; similarity in personality predicts friendship and relationship satisfaction only weakly.</p>
+    <p>Life-outcome links follow the Life Outcomes of Personality Replication project (Soto, 2019) and Roberts et al. (2007); the individual effect sizes shown are rounded blends and deliberately conservative.</p>
+    <p>Music links draw on Rentfrow &amp; Gosling (2003), the MUSIC-model work that followed it, and Spotify listening data (Anderson et al., 2021). Genre correlations differ across studies and cultures and are small, so the genre lists are cautious blends.</p>
+    <p>Profile codes are just your ten facet percentiles in a compact form (with a check character), so they can be shared by copy and paste. Saved profiles are kept only in this browser’s local storage.</p>
+    <p>Each chapter shows how solid its evidence is. “Solid” means descriptive facts or well-replicated correlations; “moderate” means real but small effects; “tentative” means my own synthesis or modeled values that are least certain.</p>
+    <p>The quizzes are informal and use approximate norms. For a validated assessment, try a published inventory (such as the BFI-2 or the Big Five Aspects Scales) and enter those percentiles above. This page runs entirely in your browser; scores are stored only in this browser’s local storage.</p>
+  </div>
+</footer>
+</main>
+
+<script>
+(()=>{
+'use strict';
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- math ---------- */
+function probit(p){
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425,ph=1-pl;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p>ph){q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  q=p-.5;r=q*q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);
+  return s*(1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x));}
+const ncdf=z=>0.5*(1+erf(z/Math.SQRT2));
+function lgamma(z){const c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  z-=1;let x=c[0];for(let i=1;i<9;i++)x+=c[i]/(z+i);const t=z+7.5;return .5*Math.log(2*Math.PI)+(z+.5)*Math.log(t)-t+Math.log(x);}
+function gammaP(a,x){if(x<=0)return 0;let sum=1/a,term=1/a;for(let n=1;n<300;n++){term*=x/(a+n);sum+=term;if(term<1e-13)break;}
+  return clamp(sum*Math.exp(-x+a*Math.log(x)-lgamma(a)),0,1);}
+function invert(M){const n=M.length;const A=M.map((r,i)=>[...r,...Array.from({length:n},(_,j)=>i===j?1:0)]);
+  for(let i=0;i<n;i++){let p=i;for(let r=i+1;r<n;r++)if(Math.abs(A[r][i])>Math.abs(A[p][i]))p=r;
+    if(Math.abs(A[p][i])<1e-10)return null;[A[i],A[p]]=[A[p],A[i]];const d=A[i][i];for(let c=0;c<2*n;c++)A[i][c]/=d;
+    for(let r=0;r<n;r++)if(r!==i){const f=A[r][i];if(f)for(let c=0;c<2*n;c++)A[r][c]-=f*A[i][c];}}
+  return A.map(r=>r.slice(n));}
+const ordinal=p=>{p=Math.round(p);const s=['th','st','nd','rd'],v=p%100;return p+(s[(v-20)%10]||s[v]||s[0]);};
+const lvl=z=>z>1.3?'very high':z>0.45?'high':z<-1.3?'very low':z<-0.45?'low':'moderate';
+const band=z=>z>0.45?2:z<-0.45?0:1;
+
+/* ---------- data ---------- */
+const TRAITS=[
+ {k:'O',name:'Openness',lo:'practical',hi:'curious'},
+ {k:'C',name:'Conscientiousness',lo:'flexible',hi:'disciplined'},
+ {k:'E',name:'Extraversion',lo:'reserved',hi:'outgoing'},
+ {k:'A',name:'Agreeableness',lo:'candid',hi:'compassionate'},
+ {k:'N',name:'Neuroticism',lo:'steady',hi:'sensitive'}];
+const FACETS=[
+ {k:'ind',t:'C',name:'Industriousness',gloss:'drive, diligence, persistence'},
+ {k:'ord',t:'C',name:'Orderliness',gloss:'tidiness, routine, planning'},
+ {k:'com',t:'A',name:'Compassion',gloss:'empathy, warmth, care'},
+ {k:'pol',t:'A',name:'Politeness',gloss:'deference, restraint, respect for norms'},
+ {k:'wit',t:'N',name:'Withdrawal',gloss:'anxiety, low mood, self-doubt'},
+ {k:'vol',t:'N',name:'Volatility',gloss:'irritability, mood swings, anger'},
+ {k:'ent',t:'E',name:'Enthusiasm',gloss:'warmth, cheer, sociability'},
+ {k:'ass',t:'E',name:'Assertiveness',gloss:'leadership, speaking up, drive'},
+ {k:'ope',t:'O',name:'Aesthetic openness',gloss:'imagination, beauty, feeling (called “Openness” in the aspect model)'},
+ {k:'int',t:'O',name:'Intellect',gloss:'abstract ideas, curiosity about how things work'}];
+const KEYS=FACETS.map(f=>f.k);
+const FN=Object.fromEntries(FACETS.map(f=>[f.k,f.name]));
+const T_FACETS={O:['ope','int'],C:['ind','ord'],E:['ent','ass'],A:['com','pol'],N:['wit','vol']};
+const R10=[
+[1,.45,-.05,.15,-.30,-.15,.35,.40,.15,.25],
+[.45,1,-.10,.30,-.10,-.25,.05,.15,0,-.05],
+[-.05,-.10,1,.45,-.20,-.30,.35,.05,.20,.10],
+[.15,.30,.45,1,-.05,-.35,.10,0,.05,-.05],
+[-.30,-.10,-.20,-.05,1,.45,-.40,-.20,-.10,-.05],
+[-.15,-.25,-.30,-.35,.45,1,-.20,-.10,-.05,0],
+[.35,.05,.35,.10,-.40,-.20,1,.45,.25,.10],
+[.40,.15,.05,0,-.20,-.10,.45,1,.10,.25],
+[.15,0,.20,.05,-.10,-.05,.25,.10,1,.45],
+[.25,-.05,.10,-.05,-.05,0,.10,.25,.45,1]];
+const R5=TRAITS.map(a=>TRAITS.map(b=>{
+  if(a.k===b.k)return 1;let s=0;
+  T_FACETS[a.k].forEach(x=>T_FACETS[b.k].forEach(y=>{s+=R10[KEYS.indexOf(x)][KEYS.indexOf(y)];}));return s/4;}));
+
+const REG=[
+ {g:'East Asia & Southeast Asia',n:'East Asian (Confucian)',c:'Japan, S. Korea, China',v:[-2.5,1.5,-2.5,-1.0,2.0]},
+ {g:'East Asia & Southeast Asia',n:'Southeast Asian',c:'Thailand, Indonesia, Vietnam',v:[-0.5,0.5,0,1.0,0.5]},
+ {g:'Europe',n:'Nordic',c:'Sweden, Denmark, Norway, Finland',v:[1.5,0.5,-0.5,1.5,-2.0]},
+ {g:'Europe',n:'Germanic',c:'Germany, Austria, Switzerland',v:[0.5,2.0,-1.0,-0.5,-0.5]},
+ {g:'Europe',n:'Anglo',c:'UK, Ireland, Australia, NZ',v:[1.0,0.5,1.0,0.5,-0.5]},
+ {g:'Europe',n:'Latin European',c:'France, Italy, Spain, Portugal',v:[0,-0.5,0.5,0,1.0]},
+ {g:'Europe',n:'Eastern European',c:'Poland, Russia, Romania, Ukraine',v:[-1.0,-0.5,-1.0,-1.5,1.5]},
+ {g:'Americas',n:'US: Pacific Coast',c:'California, Oregon, Washington',v:[2.0,-0.5,0.5,0,-0.5]},
+ {g:'Americas',n:'US: Northeast',c:'New York, New England',v:[1.5,-0.5,0,-1.0,1.0]},
+ {g:'Americas',n:'US: Midwest',c:'Ohio, Minnesota, Kansas',v:[-1.0,1.0,0.5,1.5,-1.0]},
+ {g:'Americas',n:'US: South',c:'Texas, Georgia, Alabama',v:[-1.5,0.5,1.5,1.0,-0.5]},
+ {g:'Americas',n:'Latin American',c:'Brazil, Mexico, Colombia',v:[-0.5,-1.0,2.5,1.0,1.0]},
+ {g:'Middle East & South Asia',n:'Middle Eastern',c:'Iran, Turkey, Egypt, Gulf states',v:[-1.5,-0.5,-0.5,-0.5,1.5]},
+ {g:'Middle East & South Asia',n:'South Asian',c:'India, Pakistan, Bangladesh',v:[-1.0,0,0,0.5,1.0]},
+ {g:'Africa & Oceania',n:'Sub-Saharan African',c:'Nigeria, Kenya, Ghana, S. Africa',v:[0,0.5,2.0,1.5,0]}];
+
+/* interests / careers: loadings over facets */
+const INTERESTS=[
+ ['Reading deeply and literary fiction','Long books, essays, quiet hours with a text.',{ope:.6,int:.5,ent:-.2}],
+ ['Science, ideas and big questions','Documentaries, lectures, “how does that work?”',{int:.8,ope:.4}],
+ ['Philosophy and debate','Arguing a position for the pleasure of the argument.',{int:.6,ass:.4,pol:-.3,ope:.3}],
+ ['Making art, music and creative work','Drawing, composing, designing, making something that wasn’t there.',{ope:.8,int:.1,ord:-.2}],
+ ['Museums, history and culture','Exhibits, old cities, the stories behind things.',{ope:.5,int:.5,ord:.2}],
+ ['Travel and immersion','Unfamiliar places, languages and food.',{ope:.7,ent:.3,ord:-.2,wit:-.2}],
+ ['Hosting and parties','Dinners, gatherings, bringing people together.',{ent:.7,ass:.3,com:.2,wit:-.3}],
+ ['Festivals and nightlife','Crowds, live music, late evenings.',{ent:.6,ope:.3,ord:-.3,ass:.2}],
+ ['Team sports and group fitness','Movement with other people.',{ent:.4,ass:.4,ind:.4}],
+ ['Solo training and endurance','Running, cycling, lifting, progress measured over months.',{ind:.7,ord:.3,wit:-.2,ent:.1}],
+ ['Hiking and the outdoors','Trails, camping, weather on your face.',{ope:.4,ind:.3,wit:-.2,ent:.2}],
+ ['Gardening, DIY and home projects','Making a place better with your hands.',{ord:.5,ind:.4,ope:.1}],
+ ['Cooking and baking','Recipes, feeding people, a well-run kitchen.',{ord:.3,com:.3,ope:.3,ind:.2}],
+ ['Volunteering and community causes','Showing up for neighbors and good causes.',{com:.7,pol:.3,ind:.2,ent:.2}],
+ ['Animals and caring for others','Pets, fostering, looking after those who need it.',{com:.7,pol:.2,vol:-.2}],
+ ['Strategy games, puzzles and chess','Systems to master, problems to crack.',{int:.6,ind:.2,ent:-.2,ord:.2}],
+ ['Video games and digital worlds','Long stories, deep systems, worlds to disappear into.',{ope:.4,int:.3,ent:-.3,ind:-.2,wit:.2}],
+ ['Writing, journaling and blogging','Putting thoughts and feelings into words.',{ope:.5,wit:.3,int:.3,ent:-.2}],
+ ['Meditation and mindfulness','Stillness, breath, attention training.',{ope:.4,com:.3,int:-.1}],
+ ['Coding, building and tinkering','Taking things apart and making them work.',{int:.6,ord:.3,ind:.3,ent:-.2}],
+ ['Entrepreneurship and side projects','Starting things, selling things, betting on yourself.',{ass:.6,ind:.5,ope:.3,ord:-.1}],
+ ['Politics, current affairs and activism','Staying informed and pushing for change.',{ass:.4,int:.4,com:.3,pol:-.3,ope:.2}],
+ ['Faith, ritual and tradition','Community, ceremony, inherited practice.',{pol:.5,ord:.4,com:.3,ope:-.4}],
+ ['Collecting, organizing and tracking','Catalogues, spreadsheets, a place for everything.',{ord:.8,ind:.3,ope:-.1}],
+ ['Performing','Theatre, improv, bands, public speaking.',{ent:.6,ass:.5,ope:.4,wit:-.3}],
+ ['Thrill-seeking and adventure sports','Climbing, diving, speed, calculated risk.',{ass:.5,ent:.5,wit:-.4,ord:-.3,ope:.2}],
+ ['Quiet nights in','Films, comfort rituals, a home you love being in.',{ent:-.5,ope:-.1,wit:.2}],
+ ['Learning languages and taking courses','Steady self-improvement and curiosity.',{ind:.5,int:.5,ope:.4}],
+ ['Fashion, design and aesthetics','Taste, texture, how things look and feel.',{ope:.5,ent:.2,ord:.2}],
+ ['Social media and staying connected','Keeping the group chat alive, sharing, scrolling.',{ent:.5,wit:.2}],
+ ['Competitive sports and ambitious games','Rankings, rivalry, winning.',{ass:.6,ind:.4,ent:.3,pol:-.3}],
+ ['Crafts and handmade things','Knitting, pottery, woodwork, quiet skill.',{ord:.4,ind:.3,ope:.3,ent:-.2}],
+ ['Birdwatching, astronomy and nature study','Patient observation of the natural world.',{int:.4,ope:.4,ord:.3,ent:-.3}],
+ ['Deep one-on-one conversation','Hours with one person and no agenda.',{com:.4,ope:.4,int:.3,ent:-.1}],
+ ['Film and music appreciation','Taking in other people’s art with full attention.',{ope:.6,int:.2}],
+ ['Personal finance and optimizing life','Investing, productivity systems, getting better by the numbers.',{ind:.5,ord:.5,int:.2,ope:-.1}]
+].map(([n,d,w])=>({n,d,w}));
+
+const CAREERS=[
+ ['Scientist or researcher','Long inquiry into hard questions.',{int:.8,ope:.3,ind:.4,ent:-.2}],
+ ['Software and engineering','Building systems that must work.',{int:.5,ord:.4,ind:.3,ent:-.2}],
+ ['Data and analytics','Finding the signal; careful, exact work.',{int:.5,ord:.5,ind:.4}],
+ ['Artist, designer or musician','Making original work.',{ope:.8,ord:-.3,int:.1}],
+ ['Writer, editor or journalist','Ideas turned into language.',{ope:.6,int:.4,ass:.2,ind:.2}],
+ ['Teacher or educator','Explaining, encouraging, watching people grow.',{com:.5,ent:.4,ind:.3,int:.2}],
+ ['Healthcare and nursing','Steady, caring work under pressure.',{com:.6,ord:.4,ind:.3,vol:-.4}],
+ ['Counselling and social work','Sitting with people through hard things.',{com:.7,pol:.3,ope:.3,vol:-.3}],
+ ['Founder or entrepreneur','Uncertainty, initiative, self-direction.',{ass:.6,ind:.4,ope:.4,wit:-.3}],
+ ['Executive or manager','Setting direction, owning outcomes.',{ass:.6,ind:.5,ent:.3,ord:.2,wit:-.3}],
+ ['Sales and business development','Persuasion, relationships, resilience to “no”.',{ent:.6,ass:.6,wit:-.3,pol:-.1}],
+ ['Finance and accounting','Precision, rules, reliability.',{ord:.7,ind:.5,int:.2,wit:-.1}],
+ ['Law and advocacy','Argument, structure, high stakes.',{ass:.5,int:.5,ind:.4,pol:-.2}],
+ ['Skilled trades and craft','Practical mastery with tangible results.',{ord:.3,ind:.4,ope:-.1,int:.1}],
+ ['Administration and operations','Keeping complex things running smoothly.',{ord:.7,ind:.5,pol:.3}],
+ ['Emergency services and military','Calm, discipline and duty under pressure.',{ass:.4,ord:.4,wit:-.4,vol:-.4,ind:.3,com:.2}],
+ ['Hospitality and customer service','Warmth, tact and patience with the public.',{ent:.5,com:.4,pol:.4,vol:-.4}],
+ ['Performer or entertainer','Being seen, being expressive.',{ent:.6,ass:.5,ope:.5,ord:-.2}],
+ ['Consulting and strategy','Analysis delivered with confidence.',{int:.5,ass:.4,ind:.5}],
+ ['Non-profit and advocacy','Mission before margin.',{com:.6,ass:.3,ope:.3}],
+ ['Librarian, archivist or curator','Order, knowledge and quiet stewardship.',{ord:.5,int:.4,ope:.3,ent:-.3,pol:.2}],
+ ['Public service and civil administration','Duty, fairness and process.',{pol:.4,ord:.5,com:.3}],
+ ['Product and UX design','Empathy plus craft plus ideas.',{ope:.5,int:.3,com:.3,ind:.3}]
+].map(([n,d,w])=>({n,d,w}));
+
+/* archetypes: vector [O,C,E,A,N] in SD */
+const ARCH=[
+ {n:'The Explorer',v:[1.4,-.3,.8,.3,-.2],d:'Curious and adventurous; chasing the next idea, place or experience.',f:'They widen your world: they say yes to the odd plan and bring new music, food and ideas.',p:'A partner for adventure; shared novelty keeps things alive, though logistics and routine need deliberate care.'},
+ {n:'The Steady Anchor',v:[0,1.1,0,.8,-1.2],d:'Dependable, calm and quietly warm; the one who shows up and doesn’t spiral.',f:'Friends for decades: reliable, rarely dramatic, good in a crisis.',p:'The profile most consistently linked with relationship satisfaction: stability, kindness, follow-through. Passion may need novelty added on purpose.'},
+ {n:'The Quiet Thinker',v:[.9,.3,-1.2,.1,.2],d:'Reflective, idea-loving and reserved; a few deep conversations beat a crowded room.',f:'Low-pressure friendships rich in ideas, though you may need to take the initiative to meet.',p:'Intellectual intimacy and comfortable silences; they may need a gentle nudge to voice feelings or leave the house.'},
+ {n:'The Social Spark',v:[.4,-.3,1.5,.6,-.3],d:'Warm, funny and energetic; the person who makes the gathering happen.',f:'Wonderful for laughter and widening your circle, harder to pin down for quiet one-on-one time.',p:'Joyful and affectionate; household planning and emotional depth may need extra attention.'},
+ {n:'The Warm Caretaker',v:[.2,.4,.4,1.5,.2],d:'Nurturing, generous and tuned in to other people’s feelings.',f:'They notice when you’re off and show up with soup. Just make sure the care runs both ways.',p:'Deep emotional support and loyalty; the risk is over-giving and avoiding conflict, so make room for their needs.'},
+ {n:'The Direct Challenger',v:[.5,.5,.7,-1.1,-.2],d:'Blunt, competitive and independent; says what they think and expects the same.',f:'Honest sparring partners who sharpen your thinking; less ideal if you’re sensitive to criticism.',p:'Fiery and honest, with real respect when both can take directness; escalation is the risk if both run hot.'},
+ {n:'The Free Spirit',v:[1.5,-1.1,.3,.5,.3],d:'Imaginative, spontaneous and unconventional; lives by inspiration, not calendar.',f:'Unpredictable in the best way: endless inspiration, but flaky about plans and deadlines.',p:'Romance and creativity in abundance; bills, chores and logistics become the recurring friction.'},
+ {n:'The Pragmatic Planner',v:[-.5,1.5,0,.2,-.2],d:'Methodical, grounded and efficient; things get done, properly and on time.',f:'Dependable for practical help and sensible advice, less keen on last-minute whims.',p:'A stable home and clear plans; spontaneity and emotional exploration may be rare unless invited.'},
+ {n:'The Sensitive Soul',v:[.8,0,-.5,.8,1.2],d:'Deeply feeling, imaginative and kind, with a vulnerable, anxious edge.',f:'Intense, loyal and sincere; friendship goes deep fast, and asks for patience on low days.',p:'Intimacy, empathy and creativity; the partnership benefits hugely from calm communication and shared coping routines.'},
+ {n:'The Easygoing Traditionalist',v:[-1,.4,.4,.8,-.4],d:'Friendly, loyal and rooted in community and routine.',f:'Warm, unpretentious company who builds traditions and keeps in touch, less drawn to novelty for its own sake.',p:'Cozy, loyal and family-oriented; differences in curiosity or values deserve open discussion.'},
+ {n:'The Driven Achiever',v:[.2,1.3,.6,-.3,0],d:'Ambitious, disciplined and goal-oriented; a standard-setter.',f:'Motivating, great for accountability; may treat rest as optional.',p:'A capable teammate in building a life; work can crowd out intimacy unless it is protected.'}
+];
+
+/* quizzes */
+const Q10=[
+ ['E','I tend to be quiet around people I don’t know well.',true],
+ ['A','I’m generally trusting of other people.',false],
+ ['C','I get things done thoroughly and finish what I start.',false],
+ ['N','I stay relaxed and handle stress well.',true],
+ ['O','I have an active imagination and enjoy new ideas.',false],
+ ['E','I’m outgoing and I enjoy being around lots of people.',false],
+ ['A','I try to be considerate and kind to almost everyone.',false],
+ ['C','I tend to put things off and can be a bit lazy.',true],
+ ['N','I get nervous or anxious easily.',false],
+ ['O','I have few artistic or intellectual interests.',true]];
+const NORM10={O:[3.6,.85],C:[3.6,.85],E:[3.2,.95],A:[3.5,.8],N:[2.9,.9]};
+const Q40src={
+ ind:[['I start tasks right away instead of putting them off.',0],['When I commit to a goal, I keep going even when it gets tedious.',0],['I often procrastinate until the last minute.',1],['I lose steam on long projects and drift to something else.',1]],
+ ord:[['I like things tidy and in their place.',0],['I follow a schedule or routine.',0],['I’m comfortable with clutter and improvised plans.',1],['Rules and routines feel confining to me.',1]],
+ com:[['I easily feel what other people are feeling.',0],['I enjoy helping people, even when it’s inconvenient.',0],['Other people’s problems don’t move me much.',1],['I have little patience for people who bring trouble on themselves.',1]],
+ pol:[['I hold back my irritation to keep things civil.',0],['I defer to others to keep the peace.',0],['I’ll say what I think even if it bruises someone’s feelings.',1],['I’ll push hard to get my way even if it annoys people.',1]],
+ wit:[['I often feel anxious or worried.',0],['I tend to feel discouraged or down.',0],['I recover quickly from setbacks and disappointment.',1],['I feel calm about most things.',1]],
+ vol:[['I get irritated or angry easily.',0],['My mood can change quickly.',0],['I stay even-tempered, even under stress.',1],['I rarely lose my temper.',1]],
+ ent:[['I feel cheerful and energized around other people.',0],['I laugh and smile a lot.',0],['Social gatherings tend to drain me rather than energize me.',1],['I prefer my own company to a crowd.',1]],
+ ass:[['In groups I naturally take charge.',0],['I speak up and share my opinions readily.',0],['I let other people lead and decide.',1],['I tend to stay in the background.',1]],
+ ope:[['I get absorbed in art, music, poetry or nature.',0],['I love novelty: new foods, places and experiences.',0],['I prefer the familiar to the unusual.',1],['Daydreaming and fantasy don’t interest me much.',1]],
+ int:[['I enjoy abstract ideas and theories.',0],['I like to figure out how and why things work.',0],['I get bored in deep or abstract discussions.',1],['I seldom seek out difficult problems for fun.',1]]};
+const Q40=[];for(let r=0;r<4;r++)KEYS.forEach(k=>{const [t,rev]=Q40src[k][r];Q40.push([k,t,!!rev]);});
+
+/* ---------- state ---------- */
+const STORE='personality-reader-v1';
+const fresh=()=>({traits:{O:50,C:50,E:50,A:50,N:50},facets:Object.fromEntries(KEYS.map(k=>[k,50])),touched:false,seen:false,myName:'',other:{name:'',traits:{O:50,C:50,E:50,A:50,N:50}}});
+let S=fresh();
+try{const raw=localStorage.getItem(STORE);if(raw){const o=JSON.parse(raw);if(o&&o.traits&&o.facets)S=Object.assign(fresh(),o);}}catch(e){}
+let viewing=null,ownBackup=null;
+const save=()=>{if(viewing)return;try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}};
+const zT=k=>probit(clamp(S.traits[k],1,99)/100);
+const zF=k=>probit(clamp(S.facets[k],1,99)/100);
+const syncTrait=k=>{const[a,b]=T_FACETS[k];S.traits[k]=(S.facets[a]+S.facets[b])/2;};
+
+/* ---------- screens ---------- */
+function go(name){
+  ['start','enter','quiz','results'].forEach(n=>$('#s-'+n).hidden=n!==name);
+  $('#about').hidden=false;
+  window.scrollTo({top:0});
+  if(name==='enter')renderSliders();
+  if(name==='start')$('#resume').hidden=!S.seen;
+  if(name==='results')renderResults();
+}
+
+/* ---------- sliders ---------- */
+function rowHTML(id,name,cap,v,small){
+  return `<div class="srow${small?' small':''}"><div class="s-top"><label for="${id}"><span class="s-name">${name}</span><span class="s-cap">${cap}</span></label><output id="${id}-o"></output></div><input type="range" min="1" max="99" step="1" id="${id}" value="${Math.round(v)}"></div>`;
+}
+function buildSliders(){
+  $('#trait-sliders').innerHTML=TRAITS.map(t=>rowHTML('t-'+t.k,t.name,`${t.lo} · ${t.hi}`,S.traits[t.k])).join('');
+  $('#facet-sliders').innerHTML=TRAITS.map(t=>`<div class="facet-group"><div class="fg-t">${t.name}</div>`+
+    T_FACETS[t.k].map(k=>{const f=FACETS.find(x=>x.k===k);return rowHTML('f-'+k,f.name,f.gloss,S.facets[k],true);}).join('')+'</div>').join('');
+}
+function renderSliders(){
+  if(!$('#t-O'))buildSliders();
+  TRAITS.forEach(t=>paint('t-'+t.k,S.traits[t.k]));
+  KEYS.forEach(k=>paint('f-'+k,S.facets[k]));
+}
+function paint(id,v){
+  const el=document.getElementById(id);if(!el)return;
+  el.value=Math.round(v);el.style.setProperty('--fill',((v-1)/98*100)+'%');
+  const z=probit(clamp(v,1,99)/100);
+  document.getElementById(id+'-o').textContent=`${ordinal(v)} percentile · ${lvl(z)}`;
+}
+document.addEventListener('input',e=>{
+  const id=e.target.id||'';
+  if(id.startsWith('t-')){
+    const k=id.slice(2),nv=+e.target.value,d=nv-S.traits[k];
+    T_FACETS[k].forEach(f=>S.facets[f]=clamp(S.facets[f]+d,1,99));
+    S.traits[k]=nv;syncTrait(k);if(Math.abs(S.traits[k]-nv)>.6)S.traits[k]=nv;
+    renderSliders();save();
+  }else if(id==='o-name'){S.other.name=e.target.value;save();renderCompare();
+  }else if(id.startsWith('o-')){
+    const k=id.slice(2);S.other.traits[k]=+e.target.value;paint(id,S.other.traits[k]);save();renderCompare();
+  }else if(id.startsWith('f-')){
+    const k=id.slice(2);S.facets[k]=+e.target.value;S.touched=true;
+    syncTrait(FACETS.find(f=>f.k===k).t);renderSliders();save();
+  }
+});
+$('#facet-toggle').addEventListener('click',e=>{
+  const w=$('#facet-wrap');w.hidden=!w.hidden;e.target.setAttribute('aria-expanded',!w.hidden);
+  e.target.textContent=w.hidden?'Add finer detail: the ten facets (optional)':'Hide the facets';
+});
+$('#reveal').addEventListener('click',()=>{
+  // if facets differ meaningfully within any trait, treat as facet-level
+  TRAITS.forEach(t=>{const[a,b]=T_FACETS[t.k];if(Math.abs(S.facets[a]-S.facets[b])>=6)S.touched=true;});
+  S.seen=true;save();go('results');
+});
+
+/* ---------- quiz ---------- */
+let quiz=null;
+function startQuiz(kind){
+  const items=(kind==='quick'?Q10:Q40).map(([k,t,rev])=>({k,t,rev}));
+  quiz={kind,items,per:kind==='quick'?10:8,page:0,ans:{}};
+  go('quiz');renderQuiz();
+}
+function renderQuiz(){
+  const{items,per,page,ans,kind}=quiz,pages=Math.ceil(items.length/per);
+  $('#quiz-progress').textContent=`${kind==='quick'?'Quick sketch':'Detailed portrait'} · page ${page+1} of ${pages}`;
+  const start=page*per;
+  $('#quiz-body').innerHTML=items.slice(start,start+per).map((it,i)=>{
+    const n=start+i;
+    return `<div class="q"><p class="q-t">${esc(it.t)}</p><div class="likert"><span class="end">Disagree</span>${[1,2,3,4,5].map(v=>
+      `<label><input type="radio" name="q${n}" value="${v}" data-n="${n}" ${ans[n]===v?'checked':''} aria-label="${v} of 5"><span class="dot"></span></label>`).join('')}<span class="end">Agree</span></div></div>`;
+  }).join('');
+  $('#quiz-next').textContent=page===pages-1?'See my scores':'Continue';
+  updQuizBtn();window.scrollTo({top:0});
+}
+function updQuizBtn(){
+  const{items,per,page,ans}=quiz,start=page*per,n=items.slice(start,start+per).filter((_,i)=>!ans[start+i]).length;
+  $('#quiz-next').disabled=n>0;$('#quiz-left').textContent=n?`${n} unanswered`:'';
+}
+document.addEventListener('change',e=>{
+  if(e.target.matches('.likert input')){quiz.ans[+e.target.dataset.n]=+e.target.value;updQuizBtn();}
+});
+$('#quiz-next').addEventListener('click',()=>{
+  const pages=Math.ceil(quiz.items.length/quiz.per);
+  if(quiz.page<pages-1){quiz.page++;renderQuiz();}else finishQuiz();
+});
+$('#quiz-back').addEventListener('click',()=>{
+  if(quiz&&quiz.page>0){quiz.page--;renderQuiz();}else go('start');
+});
+function finishQuiz(){
+  const{items,ans,kind}=quiz;
+  const val=i=>items[i].rev?6-ans[i]:ans[i];
+  if(kind==='quick'){
+    TRAITS.forEach(t=>{
+      const idx=items.map((it,i)=>it.k===t.k?i:-1).filter(i=>i>=0);
+      const m=idx.reduce((s,i)=>s+val(i),0)/idx.length,[mu,sd]=NORM10[t.k];
+      const p=clamp(ncdf((m-mu)/sd)*100,3,97);
+      S.traits[t.k]=p;T_FACETS[t.k].forEach(f=>S.facets[f]=p);
+    });
+    S.touched=false;
+  }else{
+    KEYS.forEach(k=>{
+      const idx=items.map((it,i)=>it.k===k?i:-1).filter(i=>i>=0);
+      const m=idx.reduce((s,i)=>s+val(i),0)/idx.length;
+      S.facets[k]=clamp(ncdf((m-3.1)/.7)*100,3,97);
+    });
+    TRAITS.forEach(t=>syncTrait(t.k));S.touched=true;
+  }
+  save();go('enter');
+  const b=$('#quiz-banner');b.hidden=false;
+  b.textContent=kind==='quick'?'A sketch from your ten answers. The percentiles are rough estimates from approximate norms, so adjust anything that feels off, or try a validated test for precision.':'Your traits and facets from the detailed quiz. The percentiles are rough estimates from approximate norms, so adjust anything that feels off, or try a validated test such as the BFI-2 for precision.';
+  if(kind==='long'){$('#facet-wrap').hidden=false;$('#facet-toggle').textContent='Hide the facets';$('#facet-toggle').setAttribute('aria-expanded','true');}
+}
+
+/* ---------- results helpers ---------- */
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI'];
+let uid=0;
+const nid=()=>'u'+(++uid);
+function toggleBtn(target,off,on,cls='linkbtn'){return `<button class="${cls}" data-toggle="${target}" data-off="${esc(off)}" data-on="${esc(on)}" aria-expanded="false">${esc(off)}</button>`;}
+function dots(n){return `<span class="dots" aria-label="${n} of 4">${'●'.repeat(n)}<span class="off">${'●'.repeat(4-n)}</span></span>`;}
+const zAll=()=>Object.fromEntries(KEYS.map(k=>[k,zF(k)]));
+
+function score(w,z){
+  let s=0,tot=0;const parts=[];
+  for(const k in w){s+=w[k]*z[k];tot+=Math.abs(w[k]);parts.push({k,c:w[k]*z[k],z:z[k]});}
+  parts.sort((a,b)=>Math.abs(b.c)-Math.abs(a.c));
+  return{avg:s/tot,parts};
+}
+function whyText(parts,positive){
+  const good=parts.filter(p=>Math.abs(p.z)>=.35&&(positive?p.c>0:p.c<0)).slice(0,2);
+  if(!good.length)return 'Your profile sits near the middle on the traits that matter here, so the pull is mild either way.';
+  const d=good.map(p=>`${p.z>0?'high':'low'} ${FN[p.k].toLowerCase()}`);
+  return (positive?'Tends to go with ':'Tends to sit less comfortably with ')+'your '+d.join(' and ')+'.';
+}
+function rankList(list,opts={}){
+  const z=zAll();
+  const sc=list.map(it=>({...it,...score(it.w,z)})).sort((a,b)=>b.avg-a.avg);
+  const strength=a=>a>.9?4:a>.55?3:a>.25?2:a>.1?1:0;
+  const li=(it,pos)=>`<li class="item"><div class="i-head"><span class="i-name">${esc(it.n)}</span>${pos?dots(strength(it.avg)):''}</div><p class="i-desc">${esc(it.d)}</p></li>`;
+  const k=opts.count||9;
+  return `<div class="cols"><div><div class="sub">${opts.hiLabel||'Likely draws'}</div><ul class="items">${sc.slice(0,k).map(i=>li(i,true)).join('')}</ul></div>`+
+   `<div><div class="sub">${opts.lowLabel||'May draw you less'}</div><ul class="items">${sc.slice(-k).reverse().map(i=>li(i,false)).join('')}</ul></div></div>`;
+}
+
+/* ---------- chart helpers ---------- */
+const zpos=z=>((clamp(z,-3,3)+3)/6*100).toFixed(1);
+function axisRow(ticks,cols){return `<div class="xva ax"${cols?` style="grid-template-columns:${cols}"`:''}><span></span><span class="axc">`+ticks.map(([p,l])=>`<span style="left:${p}%">${l}</span>`).join('')+`</span><span></span></div>`;}
+function axisHTML(){return axisRow([-2,-1,0,1,2].map(t=>[zpos(t),ordinal(ncdf(t)*100)]));}
+function bellSvg(z){
+  const W=120,H=58,base=H-8,top=10,x0=6,x1=W-6,zc=clamp(z,-3,3);
+  const X=x=>x0+(x+3)/6*(x1-x0),Y=x=>base-Math.exp(-x*x/2)*(base-top);
+  let line='',fill=`M${X(-3).toFixed(1)} ${base}`;
+  for(let x=-3;x<=3.0001;x+=.1)line+=(line?'L':'M')+X(x).toFixed(1)+' '+Y(x).toFixed(1);
+  for(let x=-3;x<=zc;x+=.1)fill+=`L${X(x).toFixed(1)} ${Y(x).toFixed(1)}`;
+  fill+=`L${X(zc).toFixed(1)} ${Y(zc).toFixed(1)}L${X(zc).toFixed(1)} ${base}Z`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="position on a bell curve"><path class="c-fill" d="${fill}"/><path class="c-line" d="${line}"/><line class="c-base" x1="${x0}" x2="${x1}" y1="${base}" y2="${base}"/><line class="c-mark" x1="${X(zc).toFixed(1)}" x2="${X(zc).toFixed(1)}" y1="${base}" y2="${Y(zc).toFixed(1)}"/><circle class="c-dot" cx="${X(zc).toFixed(1)}" cy="${Y(zc).toFixed(1)}" r="3.4"/></svg>`;
+}
+function fbar(name,v){
+  const up=v>=50,w=Math.abs(v-50);
+  return `<div class="fbar" title="${esc(name)}: ${ordinal(v)} percentile"><span>${esc(name)}</span><span class="tk"><i class="mid"></i><i class="fill ${up?'':'dn'}" style="${up?`left:50%`:`left:${v}%`};width:${w}%"></i></span><span>${ordinal(v)}</span></div>`;
+}
+function condExp(R,z){
+  const n=z.length,out=[];
+  for(let i=0;i<n;i++){
+    const idx=[...Array(n).keys()].filter(k=>k!==i);
+    const inv=invert(idx.map(a=>idx.map(b=>R[a][b])));if(!inv)return null;
+    const c=idx.map(a=>R[a][i]);
+    const w=inv.map(row=>row.reduce((s,v,j)=>s+v*c[j],0));
+    const mu=w.reduce((s,wk,k)=>s+wk*z[idx[k]],0),r2=w.reduce((s,wk,k)=>s+wk*c[k],0);
+    out.push({mu,sd:Math.sqrt(Math.max(.05,1-r2))});
+  }
+  return out;
+}
+function xvaChart(z,names,R){
+  const ce=condExp(R,z);if(!ce)return '';
+  const rows=ce.map((c,i)=>({i,mu:c.mu,sd:c.sd,res:(z[i]-c.mu)/c.sd,z:z[i]})).sort((a,b)=>Math.abs(b.res)-Math.abs(a.res));
+  let h=`<p class="legend"><i>●</i> you &nbsp;·&nbsp; ○ where the rest of your profile predicts you would land &nbsp;·&nbsp; shaded band: the typical range</p>`+axisHTML();
+  rows.forEach(r=>{
+    const lo=clamp(r.mu-r.sd,-3,3),hi=clamp(r.mu+r.sd,-3,3),a=+zpos(r.z),e=+zpos(r.mu),odd=Math.abs(r.res)>=1;
+    h+=`<div class="xva" title="${esc(names[r.i])}: you ${ordinal(ncdf(r.z)*100)} percentile; expected about ${ordinal(ncdf(r.mu)*100)}"><span>${esc(names[r.i])}</span><span class="tk"><i class="mid"></i><i class="band" style="left:${zpos(lo)}%;width:${(zpos(hi)-zpos(lo)).toFixed(1)}%"></i><i class="cn" style="left:${Math.min(a,e)}%;width:${Math.abs(a-e)}%"></i><i class="ex" style="left:${e}%"></i><i class="ac" style="left:${a}%"></i></span><span style="${odd?'color:var(--accent)':''}">${odd?(r.res>0?'higher than expected':'lower than expected'):'as expected'}</span></div>`;
+  });
+  return h;
+}
+function fitChart(kind){
+  const u=userVec(),o=kind==='f'?'p':'f';
+  const rows=ARCH.map(a=>({a,s:compat(u,a,kind),t:compat(u,a,o)}));
+  const all=rows.flatMap(r=>[r.s,r.t]),lo=Math.min(...all)-.04,hi=Math.max(...all)+.03;
+  const pos=v=>((v-lo)/(hi-lo)*100).toFixed(1);
+  rows.sort((x,y)=>y.s-x.s);
+  return `<p class="legend"><i>▬</i> fit as ${kind==='f'?'a friend':'a partner'} &nbsp;·&nbsp; ◇ the same type as ${kind==='f'?'a partner':'a friend'}. Scores are relative to one another, not probabilities.</p>`+
+   rows.map(r=>`<div class="fit-row" title="${esc(r.a.n)}"><span>${esc(r.a.n)}</span><span class="fr-t"><i class="fr-bar" style="width:${pos(r.s)}%"></i><b class="fr-o" style="left:${pos(r.t)}%"></b></span></div>`).join('');
+}
+function fitToggle(kind){
+  const id=nid();
+  return `<p style="margin-top:1.6rem">${toggleBtn(id,'See how all eleven types fit ▾','Hide the chart ▴')}</p><div id="${id}" hidden style="margin-top:1rem">${fitChart(kind)}</div>`;
+}
+const POS=[[-.8,.8],[-.3,1],[.4,.95],[-.5,.55],[0,.7],[.5,0],[1,-.4],[.95,-.6],[.8,-.9],[-.8,-.85],[-.2,-.7],[-.7,-.6],[-.1,-.5],[.7,-.2],[.2,-.45],[-.2,.6],[-.5,.2],[-.85,.5],[-.7,.1],[-.6,.65],[.5,.1],[.6,.6],[.45,-.15],[-.8,-.3],[.9,.2],[.4,-.95],[-.9,-.2],[-.1,.5],[.2,.15],[.8,.1],[.7,-.75],[-.85,-.45],[-.55,.25],[.2,.55],[-.3,.3],[-.5,.15]];
+function compass(){
+  const z=zAll(),W=640,H=420,L=30,R=30,T=24,B=30;
+  const px=x=>L+(x+1)/2*(W-L-R),py=y=>T+(1-(y+1)/2)*(H-T-B);
+  const it=INTERESTS.map((o,i)=>({...o,...score(o.w,z),x:POS[i][0],y:POS[i][1]}));
+  let ws=0,cx=0,cy=0;it.forEach(i=>{const w=Math.max(0,i.avg-.1);ws+=w;cx+=w*i.x;cy+=w*i.y;});
+  let svg=`<svg class="compass" viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of interests by social and abstract character">`;
+  svg+=`<line class="cp-g" x1="${px(0)}" x2="${px(0)}" y1="${T}" y2="${H-B}"/><line class="cp-g" x1="${L}" x2="${W-R}" y1="${py(0)}" y2="${py(0)}"/>`;
+  svg+=`<text class="cp-a" x="${L}" y="${H-8}">◂ solitary</text><text class="cp-a" x="${W-R}" y="${H-8}" text-anchor="end">social ▸</text><text class="cp-a" x="${px(0)}" y="13" text-anchor="middle">abstract</text><text class="cp-a" x="${px(0)}" y="${H-B+16}" text-anchor="middle">concrete</text>`;
+  it.slice().sort((a,b)=>a.avg-b.avg).forEach(i=>{
+    const r=3+clamp(i.avg,0,1.3)/1.3*6,strong=i.avg>.25,mid=i.avg>.05;
+    svg+=`<circle cx="${px(i.x).toFixed(1)}" cy="${py(i.y).toFixed(1)}" r="${r.toFixed(1)}" fill="${mid?'var(--accent)':'var(--soft)'}" opacity="${strong?.85:mid?.4:.55}"><title>${esc(i.n)}</title></circle>`;
+  });
+  const placed=[];
+  it.slice().sort((a,b)=>b.avg-a.avg).slice(0,10).forEach(i=>{
+    if(i.avg<.15)return;
+    const w=i.n.length*5.4,x=px(i.x),y=py(i.y),r=3+clamp(i.avg,0,1.3)/1.3*6;
+    for(const side of [1,-1]){
+      const bx=side>0?x+r+3:x-r-3-w,box=[bx,y-8,bx+w,y+4];
+      if(box[0]<2||box[2]>W-2)continue;
+      if(placed.some(p=>!(box[2]<p[0]||box[0]>p[2]||box[3]<p[1]||box[1]>p[3])))continue;
+      placed.push(box);svg+=`<text class="cp-l" x="${side>0?bx:bx+w}" y="${y+3}" text-anchor="${side>0?'start':'end'}">${esc(i.n)}</text>`;break;
+    }
+  });
+  if(ws>.25){const x=px(cx/ws),y=py(cy/ws);svg+=`<circle class="cp-y" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="15"/><text class="cp-a" x="${x.toFixed(1)}" y="${(y+30).toFixed(1)}" text-anchor="middle" style="fill:var(--accent)">your centre</text>`;}
+  return svg+'</svg><p class="legend">Dot size shows how strongly each activity tends to pull on your profile. The dashed ring marks the centre of gravity of your strongest pulls.</p>';
+}
+
+/* ---------- chapter: portrait ---------- */
+const TRAIT_TEXT={
+ O:['You favor the tried and true. Practical and grounded, you tend to trust what has worked and prefer the concrete to the abstract.','You balance curiosity with practicality, enjoying novelty in doses and ideas when they prove useful.','Your mind roams. Curious, imaginative and drawn to beauty and ideas, you see possibilities where others see routine.'],
+ C:['You live flexibly and in the moment. Spontaneous and adaptable, you resist rigid plans, though deadlines and follow-through may take deliberate effort.','You can be organized when it matters and relaxed when it doesn’t.','You are dependable and deliberate. Plans, standards and follow-through come naturally, and others rely on you; the risk is rigidity or overwork.'],
+ E:['You recharge in quiet. Reflective and self-contained, you prefer a few close ties to a crowd and tend to think before you speak.','You are comfortable in company and equally comfortable alone.','You draw energy from people and activity. Talkative, upbeat and bold, you seek stimulation, and your enthusiasm is contagious.'],
+ A:['You are candid and competitive: skeptical of motives, comfortable with conflict, willing to put logic or your own interests first.','You are cooperative without being a pushover; warm when it’s warranted, firm when it isn’t.','You are warm, trusting and considerate. Kindness and cooperation come easily; the risk is swallowing your own needs to keep the peace.'],
+ N:['You are emotionally steady. Stress rolls off you more easily than most, though you may under-notice danger or other people’s distress.','You feel the ordinary range of worry and frustration, and recover in the ordinary way.','You feel things intensely. Sensitivity to threat and stress gives you vigilance and depth, and also more worry, low mood or irritability.']
+};
+function chPortrait(){
+  const ts=TRAITS.map(t=>({...t,z:zT(t.k),p:S.traits[t.k]}));
+  const by=[...ts].sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+  let intro;
+  if(Math.abs(by[0].z)<.4)intro='Your profile sits close to the middle on all five traits, a flexible temperament that doesn’t lean hard in any one direction. That tends to mean adaptability, with fewer strong stereotypes to match.';
+  else intro=`Your most distinctive trait is <em>${by[0].name.toLowerCase()}</em> (${lvl(by[0].z)}, ${ordinal(by[0].p)} percentile)`+(Math.abs(by[1].z)>=.4?`, followed by <em>${by[1].name.toLowerCase()}</em> (${lvl(by[1].z)}).`:'.');
+  let h=`<p class="intro">${intro}</p><div class="bells">`+ts.map(t=>`<div class="bell"><div class="b-n">${t.name}</div>${bellSvg(t.z)}<div class="b-v">${ordinal(t.p)}</div></div>`).join('')+`</div><p class="legend">Each curve is the spread of all people; the marker is you, and the shaded part is the share of people you score above.</p>`;
+  if(S.touched){
+    h+=`<div class="sub">Your ten facets</div><p class="legend">Bars run from the 50th percentile outward: <i>rightward</i> is above average, <span style="color:var(--slate)">leftward</span> is below.</p>`+
+      TRAITS.map(t=>`<div class="fgrp">`+T_FACETS[t.k].map(k=>fbar(FN[k],S.facets[k])).join('')+`</div>`).join('');
+  }else h+=`<p class="note">You entered the five traits only. <button class="linkbtn" data-addfacets>Add the ten facets</button> to see how each trait splits.</p>`;
+  h+=`<div class="sub">In plain language</div>`;
+  ts.forEach(t=>{
+    h+=`<div class="trait-block"><div class="tb-h">${t.name} <em>— ${lvl(t.z)}</em></div><p style="margin:.2rem 0 0">${TRAIT_TEXT[t.k][band(t.z)]}</p></div>`;
+  });
+  return h;
+}
+
+/* ---------- chapter: interests ---------- */
+function chInterests(){
+  const zs=Object.values(zAll()),flat=Math.max(...zs.map(Math.abs))<.4;
+  return `<p class="intro">Activities that tend to travel with your profile, mapped by how social and how abstract they are, then ranked below. Four dots is a strong pull; fewer is a gentle one.</p>`+
+   (flat?`<p>Your scores are near the middle, so expect broad, flexible interests; the ranking is a faint tilt, not a strong signal.</p>`:'')+
+   `<div class="wide">${compass()}</div>`+rankList(INTERESTS);
+}
+function chCareers(){
+  const z=zAll(),b=k=>band(z[k]);
+  const L=[];
+  if(b('ord')===2)L.push(['Structure','You likely thrive with clear processes, defined roles and quality standards, and may be the one who quietly keeps a team organized.']);
+  if(b('ord')===0)L.push(['Structure','You likely do best with autonomy and variety; heavy bureaucracy and rigid procedure drain you.']);
+  if(b('wit')===0&&b('vol')===0)L.push(['Pressure','You’re well suited to high-stakes, fast-moving settings; your calm becomes an asset to everyone around you.']);
+  else if(b('wit')===2||b('vol')===2)L.push(['Pressure','You do best where expectations are clear and workloads are sustainable. Your vigilance catches errors others miss, but chronic uncertainty costs you more than most.']);
+  if(b('ass')===2)L.push(['Leadership','Leading, negotiating and presenting come naturally; you’re often nominated to take charge, and you tend to advance.']);
+  if(b('ass')===0)L.push(['Leadership','You contribute most through depth, craft and steady support rather than through front-stage roles, and you may be undervalued unless you speak up about your work.']);
+  if(b('ent')===2)L.push(['People','Client-facing and collaborative work gives you energy, not just output.']);
+  if(b('ent')===0)L.push(['People','You do your best thinking in focus time; roles with long stretches of independent work, written communication and small teams suit you.']);
+  if(b('com')===2)L.push(['Teamwork','You’re a natural mentor and cooperator, the one colleagues confide in. Watch out for taking on others’ load.']);
+  if(b('com')===0||b('pol')===0)L.push(['Teamwork','You’re comfortable with hard calls and honest critique, an asset in negotiation and quality control, though softening delivery helps.']);
+  if(b('ope')===2||b('int')===2)L.push(['Novelty','You need room for ideas and new problems; repetitive work with no learning curve is the fastest way to lose you.']);
+  if(b('ope')===0&&b('int')===0)L.push(['Novelty','You value proven methods and practical results over novelty for its own sake, a strength in roles where reliability beats experimentation.']);
+  if(b('ind')===2)L.push(['Drive','Persistence is your edge; across many studies, conscientiousness is the most consistent personality predictor of job performance.']);
+  if(b('ind')===0)L.push(['Drive','Sustained effort on dull tasks is your hard part, so choose work you care about and build in external deadlines.']);
+  let h=`<p class="intro">Personality is only one input to a career, and its effects on job performance are modest, but certain fits recur in the research.</p>`;
+  h+=rankList(CAREERS,{hiLabel:'Likely fits',lowLabel:'Possibly harder fits'});
+  if(L.length){const id=nid();h+=`<p style="margin-top:2rem">${toggleBtn(id,'How you probably work ▾','Hide ▴')}</p><div id="${id}" hidden style="margin-top:1.2rem">`+L.map(([t,x])=>`<div class="theme"><h3>${t}</h3><p>${x}</p></div>`).join('')+'</div>';}
+  return h;
+}
+
+/* ---------- chapter: everyday ---------- */
+function chEveryday(){
+  const z=zAll(),b=k=>band(z[k]),P=(k,t)=>t[b(k)];
+  const T=[];
+  T.push(['Stress and mood',[
+    P('wit',['You rarely get stuck in worry or gloom, which makes you a steadying presence when others are rattled.','You feel the usual range of worry and low moments and bounce back in due time.','Worry and low mood visit you more often than most, and you may mull things over long after they’re done. Routine, sleep and a trusted listener help disproportionately.']),
+    P('vol',['You’re slow to anger and tend to stay even-keeled when others heat up.','','Irritation rises quickly but passes; a pause before replying works in your favor.'])]]);
+  T.push(['Communication',[
+    P('ass',['You listen first and offer a view when asked or when you’re sure. People find you easy to talk to, though you may under-share.','You contribute when you have something to add.','You speak up early and are comfortable steering a conversation or a meeting.']),
+    P('pol',['You say the blunt thing, and may do well to cushion it for people who take things personally.','','You soften hard messages and dislike open conflict, which keeps the peace, though it can delay important conversations.'])]]);
+  T.push(['Social energy',[
+    P('ent',['Social time is a budget for you; small groups suit you and you need recovery afterward.','You enjoy company in measured amounts.','You come away from gatherings energized and often make plans on the spur of the moment.'])]]);
+  T.push(['Planning and money',[
+    P('ord',['You improvise. That gives you flexibility, but bills, paperwork and deadlines are safer with systems or reminders.','','You plan ahead, keep lists and tend to keep finances in order. Surprises are what you like least.']),
+    P('ind',['Starting is the hard part; small first steps, outside deadlines and accountability partners help.','','You follow through when others fade; saving and work habits tend to compound for you.'])]]);
+  const cons=(z.ind+z.ord)/2,h2=cons>.45?'Research links your kind of conscientiousness with healthier routines and, on average, longer life.':cons<-.45?'Healthy habits don’t form on autopilot for you; attach them to things you already love, such as walks with friends or active hobbies.':'Your habits are mixed: strong in some areas, looser in others.';
+  T.push(['Health and habits',[h2,b('wit')===2?'Anxious temperaments are more prone to poor sleep and bodily tension, so wind-down rituals pay off.':'']]);
+  T.push(['Learning and curiosity',[
+    P('int',['You learn best by doing and from concrete examples more than from theory.','','You like to understand why; complexity attracts rather than intimidates you.']),
+    P('ope',['You prefer proven methods and familiar surroundings.','','Novelty energizes you and repetition bores you quickly.'])]]);
+  const lean=.5*z.ope-.3*z.ord-.2*z.pol+.2*z.com;
+  T.push(['Values and outlook',[lean>.55?'Statistically, your profile leans toward valuing novelty, change and a wide moral circle. This is one of the most-studied personality correlates, though politics depends on far more than temperament.':lean<-.55?'Statistically, your profile leans toward valuing tradition, stability, duty and loyalty to your group. This is a well-studied correlate, but politics depends on far more than temperament.':'Your profile doesn’t lean strongly either way; you probably weigh tradition and change case by case.']]);
+  return `<p class="intro">Small, ordinary tendencies, as the research sees them.</p>`+T.map(([t,ps])=>`<div class="theme"><h3>${t}</h3>${ps.filter(Boolean).map(p=>`<p>${p}</p>`).join('')}</div>`).join('');
+}
+
+/* ---------- chapters: friends & partners ---------- */
+function compat(u,a,kind){
+  const w=kind==='f'?[.30,.20,.15,.20,.15]:[.30,.25,.10,.20,.15];
+  let sim=0;for(let i=0;i<5;i++)sim+=w[i]*(1-Math.min(1,Math.abs(u[i]-a.v[i])/3.5));
+  const des=clamp(.5+.12*(a.v[3]+a.v[1]-a.v[4])+.04*a.v[2],0,1);
+  let s=kind==='f'?.65*sim+.35*des:.5*sim+.5*des;
+  if(u[4]>.7&&a.v[4]>.7)s-=.08;
+  if(u[3]<-.5&&a.v[3]<-.5)s-=.08;
+  if(Math.abs(u[1]-a.v[1])>2)s-=.08;
+  return s;
+}
+const userVec=()=>TRAITS.map(t=>zT(t.k));
+function archList(kind){
+  const u=userVec();
+  const sc=ARCH.map(a=>({a,s:compat(u,a,kind)})).sort((x,y)=>y.s-x.s);
+  const T=['O','C','E','A','N'],nm=['openness','conscientiousness','extraversion','agreeableness','neuroticism'];
+  const share=a=>{const d=u.map((x,i)=>({i,gap:Math.abs(x-a.v[i])})).filter(o=>Math.abs(u[o.i])>.4||Math.abs(a.v[o.i])>.7).sort((x,y)=>x.gap-y.gap)[0];
+    return d&&d.gap<.9?`You overlap on ${nm[d.i]}.`:'';};
+  const item=(o,good)=>{const t=kind==='f'?o.a.f:o.a.p;
+    return `<li class="item"><div class="i-head"><span class="i-name">${o.a.n}</span><span class="fit ${good?'':'low'}">${good?'fits':'stretch'}</span></div><p class="i-desc">${esc(o.a.d)}</p><p style="margin:.3rem 0 0">${esc(t)} ${esc(good?share(o.a):'')}</p></li>`;};
+  return `<div class="cols"><div><div class="sub">Likely to click</div><ul class="items">${sc.slice(0,4).map(o=>item(o,true)).join('')}</ul></div>`+
+   `<div><div class="sub">Takes more effort</div><ul class="items">${sc.slice(-4).reverse().map(o=>item(o,false)).join('')}</ul><p class="note">Different is not incompatible; these are pairings where you would most need to bridge a gap in style.</p></div></div>`;
+}
+function chFriends(){
+  const z=zAll(),L=[];
+  if(z.ent>.45&&z.com>-.2)L.push('You probably make friends quickly and keep a wide circle; the work is keeping depth alongside breadth.');
+  else if(z.ent<-.45)L.push('You probably make friends slowly and keep few; those friendships tend to be deep and long-lasting. Regular, low-pressure rituals (a standing walk, a shared hobby) help them survive busy seasons.');
+  else L.push('You likely make friends through shared activities and routines more than through big social events.');
+  if(zT('A')<-.45)L.push('Friends who value candor will prize you; with others, a touch of warmth in delivery goes a long way.');
+  if(zT('A')>.45)L.push('You’re the friend people lean on, so notice whether they ever ask how you are.');
+  if(zT('O')>.6)L.push('Of all traits, similarity in openness is among the most consistent in real friendships: you’ll bond with people who share your curiosity.');
+  if(zT('C')>.6)L.push('You value reliability in friends; flakiness will wear on you faster than disagreement.');
+  return `<p class="intro">Friends tend to resemble each other a bit in openness, conscientiousness and values, and everyone likes friends who are kind and steady. The types below are ranked by that combination of similarity and general “good-friend” qualities.</p>`+
+   archList('f')+fitToggle('f')+`<div class="sub">How you probably befriend</div>`+L.map(x=>`<p>${x}</p>`).join('');
+}
+function chPartners(){
+  const z=zAll(),L=[];
+  if(zT('N')>.6)L.push('Because you feel things intensely, a partner who is calm and warm tends to steady you; a partner’s emotional stability is among the better-supported predictors of both people’s satisfaction.');
+  if(zT('N')<-.6)L.push('You’re a steady anchor, so ask a more sensitive partner about feelings out loud instead of assuming calm means fine.');
+  if(zT('C')>.7)L.push('You value reliability; a looser partner can feel like chaos, so name which standards truly matter and let the rest go.');
+  if(zT('C')<-.7)L.push('You do better with a partner comfortable with flexibility; share logistics explicitly, with shared calendars and fixed chores.');
+  if(zT('E')>.7)L.push('Extravert–introvert pairs work when they negotiate the social calendar instead of resenting it.');
+  if(zT('E')<-.7)L.push('Time alone is not rejection, so tell your partner that. A partner who accepts quiet evenings is worth a lot.');
+  if(zT('A')<-.7)L.push('Directness is an asset if paired with explicit appreciation; two low-agreeableness partners risk escalating fights.');
+  if(zT('O')>.7)L.push('Shared curiosity is strong glue; similarity in openness is among the most consistently found matching tendencies in couples.');
+  L.push('Honest caveat: similarity in personality predicts satisfaction only weakly. Shared values and how you handle conflict matter far more.');
+  return `<p class="intro">Partner satisfaction research finds that kindness (agreeableness), reliability and emotional stability in <em>either</em> partner help, and that similarity helps a little. The types below weigh both.</p>`+
+   archList('p')+fitToggle('p')+`<div class="sub">Dynamics worth knowing</div>`+L.map(x=>`<p>${x}</p>`).join('');
+}
+
+/* ---------- chapter: typical or unusual ---------- */
+const SPLIT={
+ 'ind>ord':'A driven improviser: you push projects forward without needing tidy systems; productive, but loose ends can pile up.',
+ 'ind<ord':'A tidy but reluctant starter: you love structure and order, yet motivation to begin or sustain effort is harder to summon.',
+ 'com>pol':'Warm but blunt: you care deeply about people and still say hard things plainly, the loving truth-teller.',
+ 'com<pol':'Courteous but detached: you keep manners and the peace without necessarily feeling other people’s pain.',
+ 'wit>vol':'Internal rather than explosive: worry and low mood show up quietly, with little outward anger.',
+ 'wit<vol':'Steady inside, sparks outside: you rarely feel anxious or low, but you can flare with irritation.',
+ 'ent>ass':'Warm without wanting the wheel: you love people and joy, but prefer supporting to leading.',
+ 'ent<ass':'Commanding but reserved: you can lead and speak up without needing constant social stimulation.',
+ 'ope>int':'Imagination over analysis: drawn to beauty, feeling and experience more than abstract theory.',
+ 'ope<int':'Analysis without aesthetics: you love ideas and logic more than art and fantasy.'};
+function hmColor(r){
+  if(r>=0)return `rgba(93,122,69,${(.12+Math.abs(r)/.45*.65).toFixed(2)})`;
+  return `rgba(165,80,58,${(.12+Math.abs(r)/.4*.65).toFixed(2)})`;
+}
+const strengthWord=r=>{const a=Math.abs(r);return a>=.4?'strongly':a>=.3?'moderately':a>=.15?'weakly':'barely'};
+const lvSpan=zv=>zv>=.4?'<span class="lv up">▲ high</span>':zv<=-.4?'<span class="lv dn">▼ low</span>':'<span class="lv dn">● middle</span>';
+const splitParts=k=>{const t=SPLIT[k],ix=t.indexOf(': ');return[t.slice(0,ix),t.slice(ix+2).replace(/^./,c=>c.toUpperCase())];};
+function pairExplain(i,j){
+  const r=R10[i][j],zi=zF(KEYS[i]),zj=zF(KEYS[j]),A=FACETS[i].name,B=FACETS[j].name;
+  const weak=Math.abs(r)<.08;
+  let h=`<div class="px-t">${A} × ${B}</div><div class="px-s">Usually ${weak?'essentially unrelated':`${strengthWord(r)} ${r>0?'rise together':'pull apart'} (correlation ${r>0?'+':'−'}${Math.abs(r).toFixed(2)})`}</div><p>You: ${lvSpan(zi)} ${A.toLowerCase()}, ${lvSpan(zj)} ${B.toLowerCase()}. `;
+  const near=Math.abs(zi)<.4||Math.abs(zj)<.4;
+  h+=weak?'These two barely relate, so your combination says little either way.':near?'You are near the middle on one of them, so there is no pattern to compare.':r*zi*zj>0?'That <b>fits</b> the usual pattern.':'That <b>goes against</b> the usual pattern.';
+  h+='</p>';
+  if(Math.abs(r)>=.15){
+    const rj=zj-r*zi,ri=zi-r*zj,[a,b,za,zb]=Math.abs(rj)>=Math.abs(ri)?[i,j,zi,zj]:[j,i,zj,zi];
+    h+=`<p class="note">People at your ${FACETS[a].name.toLowerCase()} level typically land around the ${ordinal(ncdf(r*za)*100)} percentile in ${FACETS[b].name.toLowerCase()}. You are at the ${ordinal(ncdf(zb)*100)}.</p>`;
+  }
+  return h;
+}
+function chCoherence(){
+  const fm=S.touched,z=fm?KEYS.map(zF):TRAITS.map(t=>zT(t.k));
+  const R=fm?R10:R5,names=fm?FACETS.map(f=>f.name):TRAITS.map(t=>t.name),keys=fm?KEYS:TRAITS.map(t=>t.k);
+  const n=z.length,thr=fm?.2:.12;
+  const mdist=(i,j,r)=>(z[i]*z[i]-2*r*z[i]*z[j]+z[j]*z[j])/(1-r*r);
+  const cand=new Map();
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    const r=R[i][j];if(Math.abs(r)<thr)continue;
+    if(r*z[i]*z[j]<0&&Math.abs(z[i])>=.4&&Math.abs(z[j])>=.4)cand.set(i+'-'+j,{i,j,r,m:mdist(i,j,r),split:false});
+  }
+  if(fm)[['ind','ord'],['com','pol'],['wit','vol'],['ent','ass'],['ope','int']].forEach(([a,b])=>{
+    const i=KEYS.indexOf(a),j=KEYS.indexOf(b),d=z[i]-z[j];
+    if(Math.abs(d)>=.7)cand.set(i+'-'+j,{i,j,r:R[i][j],m:mdist(i,j,R[i][j])+4,split:true,d});
+  });
+  const list=[...cand.values()].sort((a,b)=>b.m-a.m).slice(0,4);
+  const iv=invert(R);let head='';
+  if(iv){
+    let D=0;for(let i=0;i<n;i++)for(let j=0;j<n;j++)D+=z[i]*iv[i][j]*z[j];
+    const p=1-gammaP(n/2,D/2),pc=Math.round(p*100);
+    const word=p>=.5?'a very ordinary combination':p>=.2?'a fairly common kind of profile':p>=.05?'somewhat distinctive':'quite unusual';
+    head=`<p class="verdict">Taken as a whole, your profile is <em>${word}</em>.</p>`+
+      `<div class="spec" style="max-width:30rem"><span class="${p>=.5?'on':''}">ordinary</span><span class="m-track"><b></b><i style="left:${clamp((1-p)*100,5,95)}%"></i></span><span class="${p<.05?'on':''}">unusual</span></div>`+
+      `<p class="note" style="margin-top:.8rem">About ${pc<1?'fewer than 1':pc} in 100 people have a combination at least this unusual, given how these ${fm?'ten facets':'five traits'} normally move together. It measures the <em>pattern</em>, not whether any trait is high or low.</p>`;
+  }
+  const phrase=c=>`${lvl(z[c.i])} ${names[c.i].toLowerCase()} alongside ${lvl(z[c.j])} ${names[c.j].toLowerCase()}`;
+  let h=`<p class="intro">Traits aren’t independent: some tend to rise together and others pull apart. This chapter shows where you follow those patterns and where you don’t.</p>`+head;
+  h+=`<div class="sub" style="margin-top:2.4rem">What stands out</div>`;
+  h+=list.length?`<p>The most distinctive thing in your profile is ${phrase(list[0])}${list[1]?`, and also ${phrase(list[1])}`:''}. Pairs like these usually move in step or in opposition; in you, they don’t.</p>`:`<p>Nothing stands out. Your traits move together the way they usually do.</p>`;
+  if(list.length){
+    h+=`<div class="cols flow" style="margin-top:1.6rem">`+list.map(c=>{
+      const{i,j,r}=c,zi=z[i],zj=z[j];let name,desc;
+      if(c.split){const[nm,ds]=splitParts(keys[i]+(c.d>0?'>':'<')+keys[j]);name=nm;desc=ds;}
+      else{name=`${names[i]} × ${names[j]}`;desc=`These two ${strengthWord(r)} ${r>0?'rise together':'pull apart'}, so people high in one are usually ${r>0?'high':'low'} in the other. In you they don’t line up that way.`;}
+      const rj=zj-r*zi,ri=zi-r*zj,[a,b]=Math.abs(rj)>=Math.abs(ri)?[i,j]:[j,i];
+      return `<div class="story"><div class="st-name">${name}</div><div class="st-tags">${names[i]} ${lvSpan(zi)} · ${names[j]} ${lvSpan(zj)}</div><p>${desc}</p><p class="note">People at your ${names[a].toLowerCase()} level typically land around the ${ordinal(ncdf(r*z[a])*100)} percentile in ${names[b].toLowerCase()}. You are at the ${ordinal(ncdf(z[b])*100)}.</p></div>`;
+    }).join('')+`</div>`;
+  }
+  // map
+  const zf=KEYS.map(zF);
+  const unusualFirst=(()=>{for(const c of list){if(fm&&Math.abs(z[c.i])>=.4&&Math.abs(z[c.j])>=.4)return[c.i,c.j];}let best=null;for(let i=0;i<10;i++)for(let j=i+1;j<10;j++){const r=R10[i][j];if(Math.abs(r)>=.2&&r*zf[i]*zf[j]<0&&Math.abs(zf[i])>=.4&&Math.abs(zf[j])>=.4){const m=Math.abs(r*zf[i]*zf[j]);if(!best||m>best.m)best={i,j,m};}}return best?[best.i,best.j]:null;})();
+  h+=`<div class="sub" style="margin-top:2.6rem">The correlation map</div><p class="legend">Each cell is the usual relationship between two facets: <span class="pos">green</span> pairs go together, <span class="neg">rust</span> pairs oppose each other. ▲ ▼ mark where you are high or low. A ring marks a pair where you go against the pattern, and faded cells involve a facet where you’re near the middle. Choose any cell.</p>`;
+  h+=`<div class="wide"><div class="hm" role="grid"><div></div>`+FACETS.map((f,j)=>`<div class="hc" title="${f.name}">${f.name.slice(0,3)}<br>${zf[j]>=.4?'▲':zf[j]<=-.4?'▼':'&nbsp;'}</div>`).join('');
+  FACETS.forEach((fa,i)=>{
+    h+=`<div class="hl">${fa.name}&nbsp;<span class="lg">${zf[i]>=.4?'▲':zf[i]<=-.4?'▼':''}</span></div>`;
+    FACETS.forEach((fb,j)=>{
+      if(i===j){h+=`<div class="cell" style="background:var(--faint)" data-hm="self">—</div>`;return;}
+      const r=R10[i][j],rel=Math.abs(zf[i])>=.4&&Math.abs(zf[j])>=.4,odd=rel&&r*zf[i]*zf[j]<0&&Math.abs(r)>=.15;
+      h+=`<div class="cell${rel?'':' fade'}${odd?' odd':''}" tabindex="0" style="background:${hmColor(r)}" data-hm="1" data-i="${i}" data-j="${j}">${r>0?'+':''}${r.toFixed(2).replace(/^(-?)0\./,'$1.')}</div>`;
+    });
+  });
+  h+=`</div></div><div id="hm-cap" class="px">${unusualFirst?pairExplain(unusualFirst[0],unusualFirst[1]):'Choose a cell to see what it means for you.'}</div>`;
+  // expected vs actual
+  const id=nid();
+  h+=`<p style="margin-top:2rem">${toggleBtn(id,'See it trait by trait: expected versus actual ▾','Hide the chart ▴')}</p><div id="${id}" hidden style="margin-top:1rem">${xvaChart(z,names,R)}</div>`;
+  if(!fm)h+=`<div class="sub" style="margin-top:2.4rem">Finer detail</div><p>You entered the five traits only. Adding the ten facets also reveals splits inside a trait, such as high industriousness with low orderliness.</p><p><button class="linkbtn" data-addfacets>Add my facets</button></p>`;
+  return h;
+}
+/* ---------- chapter: music ---------- */
+const GENRES=[
+ ['Classical and orchestral','Complex, layered, built for attention.',{ope:.6,int:.5,ent:-.2}],
+ ['Jazz','Improvisation and harmonic sophistication.',{ope:.6,int:.4,com:.3}],
+ ['Folk and acoustic','Voices, strings, stories.',{ope:.5,com:.3,ent:-.1}],
+ ['Ambient and atmospheric','Texture and mood over hook.',{ope:.5,int:.3,ent:-.2}],
+ ['World, reggae and Afropop','Rhythms and sounds beyond the usual playlists.',{ope:.5,ent:.3,ord:-.1}],
+ ['Indie and alternative','Guitar-led, introspective, slightly off-center.',{ope:.4,wit:.3,ent:-.2,ord:-.2}],
+ ['Rock','Guitars, drive, and a little rebellion.',{ope:.3,ord:-.3,vol:.1,ass:.1}],
+ ['Metal and punk','Fast, loud, confrontational.',{ope:.3,pol:-.4,com:-.3,ord:-.3,vol:.3}],
+ ['Hip-hop and rap','Rhythm, wordplay, swagger.',{ent:.5,ass:.4,pol:-.2,ope:.1}],
+ ['Dance and electronic','Pulse, build and release.',{ent:.6,ope:.2,ord:-.2}],
+ ['Pop','Polished hooks and shared hits.',{ent:.4,com:.3,pol:.3,ope:-.2,ord:.2}],
+ ['Country','Plain-spoken songs about home and heart.',{pol:.4,ord:.3,com:.3,ope:-.4}],
+ ['Gospel and devotional','Communal, uplifting, sacred.',{pol:.5,ord:.4,com:.4,ope:-.4}],
+ ['Soul, R&B and blues','Warmth, groove, feeling.',{ent:.4,com:.3,ope:.2,wit:-.2}],
+ ['Funk, Latin and reggaeton','Body-first, bright, built to move to.',{ent:.6,ass:.2,ope:.2}],
+ ['Film scores and soundtracks','Emotion on a cinematic scale.',{ope:.4,com:.3,int:.1,ent:-.1}],
+ ['Melancholy singer-songwriters','Sad songs that comfort rather than depress.',{com:.4,wit:.3,ope:.4}],
+ ['Musical theatre','Big feelings, big voices.',{ent:.4,ope:.3,com:.3}],
+ ['Lo-fi and focus beats','Quiet background for a quiet mind.',{ent:-.3,ope:.2,int:.2}],
+ ['Classic hits and oldies','Familiar favorites with a long shelf life.',{ord:.3,pol:.2,ope:-.2,com:.2}],
+ ['Experimental and avant-garde','Sound as an idea rather than a song.',{ope:.7,int:.4,pol:-.2}]
+].map(([n,d,w])=>({n,d,w}));
+const SPEC=[
+ ['calm','intense',{ent:.5,ass:.3,ord:-.2}],
+ ['melancholic','upbeat',{wit:-.4,ent:.3,ope:-.2}],
+ ['simple','complex',{ope:.6,int:.5,ent:-.1}],
+ ['still','danceable',{ent:.6,ass:.2,ope:.1}],
+ ['electronic','acoustic',{ope:.3,com:.3,ent:-.2}],
+ ['familiar','adventurous',{ope:.7,int:.2,ord:-.2}]];
+function chMusic(){
+  const z=zAll(),b=k=>band(z[k]),zt=k=>zT(k),tb=k=>band(zt(k));
+  let h=`<p class="intro">Music taste is one of the best-studied links to personality, from Rentfrow &amp; Gosling’s genre work to large Spotify listening studies. The effects are small (typically r of about .1 to .2), so think of these as leanings, not rules.</p>`;
+  h+=rankList(GENRES,{hiLabel:'Genres you may love',lowLabel:'Genres you may skip',count:8});
+  h+=`<div class="sub" style="margin-top:2.6rem">The sound you may reach for</div>`;
+  h+=SPEC.map(([lo,hi,w])=>{const a=score(w,z).avg,pos=clamp(50+a*30,6,94);
+    const w2=Math.abs(a)<.25?'':a>0?hi:lo;
+    return `<div class="spec"><span class="${w2===lo?'on':''}">${lo}</span><span class="m-track"><b></b><i style="left:${pos}%"></i></span><span class="${w2===hi?'on':''}">${hi}</span></div>`;}).join('');
+  const T=[];
+  T.push(['Why you listen',[['Music is probably a mood tool for you, for comfort, catharsis or processing, and sad songs can soothe rather than sink you.','You likely use music more for pleasure and atmosphere than to manage your mood.','Music is probably a mood tool for you, for comfort, catharsis or processing, and sad songs can soothe rather than sink you.'][tb('N')===2?0:tb('N')===0?1:2]].filter(()=>tb('N')!==1)]);
+  T.push(['How you explore',[tb('O')===2?'You range widely and chase the unfamiliar. Repeating the same playlist gets dull fast, and your library probably spans many genres.':tb('O')===0?'You love your favorites and replay them often; familiarity is a comfort, and you know exactly what you like.':'You mix old favorites with the occasional new find.']]);
+  T.push(['Where you listen',[tb('E')===2?'Music is a social thing: shared playlists, concerts, parties and the car with friends. Energetic, danceable tracks come easily.':tb('E')===0?'You are more likely to listen alone, with headphones, and to go deep on albums and artists than to treat music as a backdrop to company.':'You enjoy music both alone and in company.']]);
+  T.push(['How you organize it',[tb('C')===2?'You curate. Tidy playlists, albums start to finish, music for set routines like commuting or workouts.':tb('C')===0?'You listen by whim: shuffle, mood of the moment, whatever the day calls for.':'Part curated, part spontaneous.']]);
+  T.push(['What moves you',[tb('A')===2?'You feel music strongly and empathically, and lean toward warm, mellow and positive sounds over aggressive ones.':tb('A')===0?'You have a high tolerance, even a taste, for harsher, more confrontational sounds.':'You’re open to both gentle and edgy music, depending on the moment.']]);
+  h+=`<div class="sub" style="margin-top:2.6rem">How you probably listen</div>`+T.map(([t,ps])=>`<div class="theme"><h3>${t}</h3>${ps.filter(Boolean).map(p=>`<p>${p}</p>`).join('')}</div>`).join('');
+  return h;
+}
+
+/* ---------- chapter: regions ---------- */
+function regVec(r){return r.v.map(x=>x/10);}
+function cos(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}return na&&nb?d/Math.sqrt(na*nb):0;}
+const rWord=v=>v===0?'about average':`${Math.abs(v)>=2?'markedly':Math.abs(v)>=1.5?'clearly':Math.abs(v)>=1?'somewhat':'slightly'} ${v>0?'higher':'lower'} than average`;
+function regDesc(r){
+  const hi=[],lo=[];r.v.forEach((v,i)=>{if(v>=1)hi.push(TRAITS[i].name.toLowerCase());if(v<=-1)lo.push(TRAITS[i].name.toLowerCase());});
+  return [hi.length?'higher in '+hi.join(', '):'',lo.length?'lower in '+lo.join(', '):''].filter(Boolean).join('; ')||'close to the global average on all five';
+}
+function regBreakdown(r){
+  const u=userVec(),pos=t=>((clamp(t,-25,25)+25)/50*100).toFixed(1);
+  let h=`<p class="legend"><i>●</i> you &nbsp;·&nbsp; <span style="color:var(--slate)">◆</span> ${esc(r.n)} average &nbsp;·&nbsp; shaded: one standard deviation of people either side of average</p>`+
+   axisRow([-20,-10,0,10,20].map(t=>[pos(t),(t>0?'+':'')+t]),'7rem 1fr 0');
+  TRAITS.forEach((t,i)=>{
+    const yv=u[i]*10,rv=r.v[i];
+    h+=`<div class="xva" style="grid-template-columns:7rem 1fr 0"><span>${t.name}</span><span class="tk"><i class="mid"></i><i class="band" style="left:${pos(-10)}%;width:${(pos(10)-pos(-10)).toFixed(1)}%"></i><i class="cn s" style="left:${Math.min(+pos(yv),+pos(rv))}%;width:${Math.abs(pos(yv)-pos(rv))}%"></i><i class="them" style="left:${pos(rv)}%"></i><i class="you" style="left:${pos(yv)}%"></i></span><span></span></div>`;
+  });
+  return h+`<p class="note" style="margin-top:.8rem">Scale is T-score points from the global average (10 points is one standard deviation). Regional averages sit within a few points of the middle, while individuals spread across the whole band and beyond, which is why a profile that “matches” a region says little about any one person.</p>`;
+}
+const TILES=[[0,'East Asia',7,1],[1,'SE Asia',8,3],[2,'Nordic',4,0],[3,'Germanic',4,1],[4,'Anglo',3,1],[5,'Latin Europe',4,2],[6,'E. Europe',5,1],[7,'US Pacific',0,1],[8,'US Northeast',2,1],[9,'US Midwest',1,1],[10,'US South',1,2],[11,'Latin America',2,3],[12,'Middle East',6,2],[13,'South Asia',7,2],[14,'Africa',5,3]];
+function regDetailHTML(reg){
+  return `<div class="match"><div class="mt">${esc(reg.n)}</div><div class="md">${esc(reg.c)} · ${regDesc(reg)}</div><div class="md"><i>alignment with you</i> ${cos(userVec(),regVec(reg)).toFixed(2)}</div></div>`+regBreakdown(reg);
+}
+function spreadChart(){
+  const u=userVec(),up=u.map(x=>ncdf(x)*100);
+  let rLo=1,rHi=0;REG.forEach(r=>r.v.forEach(v=>{rLo=Math.min(rLo,ncdf(v/10));rHi=Math.max(rHi,ncdf(v/10));}));
+  const p=v=>((clamp(v,0,100))).toFixed(1),lo=Math.min(...up),hi=Math.max(...up);
+  const row=(label,inner,note)=>`<div class="xva" style="grid-template-columns:11rem 1fr 7.5rem"><span>${label}</span><span class="tk">${inner}</span><span>${note}</span></div>`;
+  const axis=axisRow([0,25,50,75,100].map(t=>[t,t]));
+  let h=`<p class="legend">Percentile scale. The slate band is where every regional average falls, on all five traits and all fifteen regions. The dots are your five traits (hover for names).</p>`+axis;
+  h+=row('All regional averages',`<i class="mid"></i><i class="band" style="left:${p(rLo*100)}%;width:${(rHi-rLo)*100}%;height:16px;margin-top:-8px;opacity:.7;background:var(--slate)"></i>`,`${ordinal(rLo*100)} to ${ordinal(rHi*100)}`);
+  h+=row('Your five traits',`<i class="mid"></i><i class="band" style="left:${p(lo)}%;width:${(hi-lo).toFixed(1)}%;height:16px;margin-top:-8px;opacity:.35"></i>`+TRAITS.map((t,i)=>`<i class="you" title="${t.name}: ${ordinal(up[i])} percentile" style="left:${p(up[i])}%"></i>`).join(''),`${ordinal(lo)} to ${ordinal(hi)}`);
+  return h+`<p class="note" style="margin-top:.8rem">${hi-lo>(rHi-rLo)*100*2?'People vary far more than regions do: your own traits span '+Math.round(hi-lo)+' percentile points, against about '+Math.round((rHi-rLo)*100)+' for all of the regional averages put together.':'Your profile is fairly balanced, but even so, the gap between any two people is usually bigger than the gap between regions.'}</p>`;
+}
+function chRegions(){
+  const u=userVec(),mag=Math.sqrt(u.reduce((s,x)=>s+x*x,0));
+  const sc=REG.map((r,idx)=>({r,idx,c:cos(u,regVec(r))})).sort((a,b)=>b.c-a.c);
+  const best=sc[0],worst=sc[sc.length-1];
+  let h=`<p class="intro">Average personality profiles differ a little between regions. Here is how yours lines up with each.</p>`;
+  h+=`<p class="verdict">Your profile looks most like the <em>${esc(best.r.n)}</em> pattern and least like the <em>${esc(worst.r.n)}</em> one.</p>`;
+  h+=`<p class="note">A caution first: regional averages sit close together, while people differ enormously within every region. Where your profile “fits” is a curiosity, not a diagnosis, and your scores say very little about where you are from.</p>`;
+  if(mag<.6)h+=`<p>Your profile is close to the global average, so most regions fit about equally well; the ranking is a faint tilt.</p>`;
+  h+=`<div class="sub" style="margin-top:2.4rem">The map of matches</div><p class="legend">Tiles sit roughly where each region is in the world. Deeper <i>brown</i> is a closer match to your shape; <span style="color:var(--slate)">slate</span> is the opposite. Choose a tile to compare trait by trait.</p>`;
+  const cmap=Object.fromEntries(sc.map(o=>[o.idx,o.c]));
+  h+=`<div class="wide"><div class="tilemap">`+TILES.map(([idx,short,c,r])=>{const v=cmap[idx];return `<button class="tile ${v<0?'dn':''}" style="grid-column:${c+1};grid-row:${r+1};--o:${(.12+.75*Math.abs(v)).toFixed(2)}" data-region="${idx}" aria-pressed="${idx===best.idx}" title="${esc(REG[idx].n)}: ${esc(REG[idx].c)}"><b>${short}</b><span>${v>0?'+':v<0?'−':''}${Math.abs(v).toFixed(2)}</span></button>`;}).join('')+`</div></div>`;
+  h+=`<div id="reg-detail" style="margin-top:1.2rem">${regDetailHTML(best.r)}</div>`;
+  h+=`<div class="sub" style="margin-top:2.6rem">How much people vary versus how much regions do</div>`+spreadChart();
+  const lid=nid(),mobile=window.innerWidth<700;
+  const list=`<p class="legend">Bars run from −1 (mirror opposite) to +1 (same shape).</p>`+sc.map(o=>{const w=Math.abs(o.c)*50,up=o.c>=0;return `<button class="rbar" data-region="${o.idx}" aria-pressed="${o.idx===best.idx}" title="${esc(o.r.c)}"><span>${esc(o.r.n)}</span><span class="tk"><i class="mid"></i><i class="fill ${up?'':'dn'}" style="${up?'left:50%':`left:${50-w}%`};width:${w}%"></i></span><span>${o.c>0?'+':''}${o.c.toFixed(2)}</span></button>`;}).join('');
+  h+=mobile?`<div class="sub" style="margin-top:2.4rem">All regions ranked</div>${list}`:`<p style="margin-top:2rem">${toggleBtn(lid,'See all fifteen ranked ▾','Hide the list ▴')}</p><div id="${lid}" hidden style="margin-top:1rem">${list}</div>`;
+  h+=`<p class="note" style="margin-top:2rem">Region values are modeled, small and illustrative (about 0.2–0.5 SD at most), and survey self-reports are affected by cultural response styles.</p>`;
+  return h;
+}
+
+/* ---------- chapter: compare ---------- */
+const DIFF={
+ O:['You reach for novelty and ideas more readily; {t} may prefer the tried and true.','{T} reaches for novelty and ideas more readily; you may prefer the familiar.'],
+ C:['You are the more organized and dependable of the two; mismatched standards on plans and chores are the likeliest friction.','{T} is the more organized and dependable; you may feel nudged, or relieved.'],
+ E:['You are the more outgoing; you will probably want more social time than {t} does.','{T} is the more outgoing and will probably want more social time than you do.'],
+ A:['You are the softer, more accommodating one; watch for giving in more than you intend.','{T} is the softer, more accommodating one and may swallow friction you would rather hear about.'],
+ N:['You feel stress and worry more intensely; {p} steadiness can calm you, or occasionally feel dismissive.','{T} feels stress and worry more intensely; your steadiness helps most when you listen before fixing.']};
+const SAME={
+ O:['Both of you are curious and novelty-loving, so there is a wide shared range to explore.','Both of you favor the familiar, so shared routines come easily.'],
+ C:['Both organized and reliable: things get done, though neither may bend easily.','Both relaxed about plans: easy-going, but someone has to remember the bills.'],
+ E:['Both outgoing: lively together, though quiet time may be scarce.','Both reserved: comfortable silences, though you may need to push to make plans.'],
+ A:['Both warm and accommodating: harmony, but hard topics may go unspoken.','Both candid: honest, with a risk of sparring turning into fights.'],
+ N:['Both sensitive: deep understanding, though moods can amplify each other.','Both steady: calm together, though emotions may go unexamined.']};
+function chCompare(){
+  const o=S.other;
+  return `<p class="intro">Enter someone else’s five traits, as percentiles, to see how the two of you line up. A friend, a partner, a colleague.</p>`+
+   `<div class="cmp-in"><div class="code-row"><input type="text" id="cmp-code" placeholder="Paste their code (PR-…) to fill this in" aria-label="Their code"><button class="linkbtn" id="cmp-load">Load</button><span class="note" id="cmp-msg"></span></div><div id="cmp-saved"></div>`+
+   `<input type="text" id="o-name" placeholder="Their name (optional)" value="${esc(o.name||'')}" aria-label="Their name" style="margin-top:1.2rem">`+
+   TRAITS.map(t=>rowHTML('o-'+t.k,t.name,`${t.lo} · ${t.hi}`,o.traits[t.k],true)).join('')+`</div><div id="cmp-out"></div>`;
+}
+function renderCompare(){
+  const out=$('#cmp-out');if(!out)return;
+  const o=S.other,named=!!(o.name||'').trim(),nm=named?o.name.trim():'Them',u=userVec(),v=TRAITS.map(t=>probit(clamp(o.traits[t.k],1,99)/100));
+  const rank=kind=>{const sc=compat(u,{v},kind),all=ARCH.map(a=>compat(u,a,kind));return all.filter(x=>x<sc).length;};
+  const rf=rank('f'),rp=rank('p');
+  let h=`<div class="sub">You and ${esc(nm)}</div><p class="legend"><i>●</i> you &nbsp;·&nbsp; <span style="color:var(--slate)">◆</span> ${esc(nm)}</p>`+axisHTML();
+  TRAITS.forEach((t,i)=>{
+    const a=+zpos(u[i]),b=+zpos(v[i]),d=u[i]-v[i];
+    h+=`<div class="xva"><span>${t.name}</span><span class="tk"><i class="mid"></i><i class="cn s" style="left:${Math.min(a,b)}%;width:${Math.abs(a-b)}%"></i><i class="them" style="left:${b}%"></i><i class="you" style="left:${a}%"></i></span><span style="${Math.abs(d)>=.8?'color:var(--accent)':''}">${Math.abs(d)>=.8?'quite different':Math.abs(d)>=.4?'a little apart':'similar'}</span></div>`;
+  });
+  h+=`<div class="sub" style="margin-top:2.2rem">What that tends to look like</div>`;
+  TRAITS.forEach((t,i)=>{
+    const d=u[i]-v[i];let txt='';
+    if(Math.abs(d)>=.8)txt=DIFF[t.k][d>0?0:1].replace(/\{T\}/g,named?esc(o.name.trim()):'The other person').replace(/\{t\}/g,named?esc(o.name.trim()):'the other person').replace(/\{p\}/g,named?esc(o.name.trim())+'’s':'the other person’s');
+    else if(Math.abs(u[i])>.4&&Math.abs(v[i])>.4&&Math.sign(u[i])===Math.sign(v[i]))txt=SAME[t.k][u[i]>0?0:1];
+    else txt='Both fairly near the middle, or similar enough that this trait is unlikely to be a flashpoint.';
+    h+=`<div class="theme"><h3>${t.name}</h3><p>${txt}</p></div>`;
+  });
+  h+=`<div class="sub">Overall fit, relative to the eleven types</div><p>As friends, ${esc(nm)}’s profile fits you better than ${rf} of the 11 types on the friends page; as partners, better than ${rp} of 11. Treat that as a loose summary: similarity predicts how much people get along only weakly, and shared values, kindness and how you handle conflict matter more.</p>`;
+  out.innerHTML=h;
+}
+
+
+/* ---------- chapter: life outcomes ---------- */
+const OUTCOMES=[
+ ['Well-being and mind',[
+  ['Life satisfaction',{E:.30,N:-.40,C:.20,A:.15,O:.05}],
+  ['Worry and low mood',{N:.45,E:-.25,C:-.15,A:-.05}],
+  ['Sense of purpose',{C:.25,E:.20,N:-.30,A:.15,O:.10}],
+  ['Resilience after setbacks',{N:-.35,E:.15,C:.15}],
+  ['Loneliness',{E:-.30,N:.30,A:-.15}]]],
+ ['Health and body',[
+  ['Healthy habits (sleep, exercise, diet)',{C:.30,N:-.10,E:.10,A:.05}],
+  ['Living longer',{C:.15,N:-.08,E:.04,A:.03}],
+  ['Substance-use risk',{C:-.25,A:-.15,N:.12,O:.08,E:.08}],
+  ['Sleep quality',{N:-.25,C:.10}],
+  ['Bodily stress complaints',{N:.30,C:-.05}]]],
+ ['Relationships',[
+  ['Relationship satisfaction',{N:-.25,A:.20,C:.15,E:.10}],
+  ['Staying partnered long-term',{N:-.18,C:.12,A:.10}],
+  ['Size of social circle',{E:.35,A:.10,O:.05,N:-.10}],
+  ['Gratitude and generosity',{A:.35,E:.10}],
+  ['Frequency of conflict',{A:-.30,N:.25}],
+  ['Trust in others',{A:.30,N:-.20,E:.10}]]],
+ ['Work and money',[
+  ['Job performance',{C:.25,N:-.10,E:.08,A:.05}],
+  ['Job satisfaction',{N:-.30,E:.25,C:.25,A:.15}],
+  ['Leadership roles',{E:.35,C:.15,N:-.15,O:.10}],
+  ['Income and advancement',{C:.20,E:.10,A:-.10,N:-.10,O:.05}],
+  ['Academic achievement',{C:.25,O:.10}],
+  ['Saving and avoiding debt',{C:.25,N:-.05}],
+  ['Starting a business',{O:.15,E:.15,C:.10,A:-.10,N:-.10}]]],
+ ['Society and values',[
+  ['Volunteering and civic life',{E:.15,A:.20,O:.10,C:.10}],
+  ['Liberal political leanings',{O:.25,C:-.15,A:.05}],
+  ['Religious involvement',{C:.10,A:.15,O:-.15}],
+  ['Rule-breaking',{C:-.25,A:-.25,N:.08}],
+  ['Creative achievement',{O:.30,E:.05,C:.05}]]]];
+function outcomeStats(w){
+  const z={O:zT('O'),C:zT('C'),E:zT('E'),A:zT('A'),N:zT('N')};
+  let sum=0,sq=0;for(const k in w){sum+=w[k]*z[k];sq+=w[k]*w[k];}
+  const mu=.85*sum,sd=Math.sqrt(1-clamp(sq,0,.5));
+  return{mu,p:ncdf(mu)*100,lo:ncdf(mu-.674*sd)*100,hi:ncdf(mu+.674*sd)*100};
+}
+function chOutcomes(){
+  const all=[];OUTCOMES.forEach(([d,list])=>list.forEach(([n,w])=>all.push({n,...outcomeStats(w)})));
+  const up=all.filter(o=>o.mu>.12).sort((a,b)=>b.mu-a.mu).slice(0,3).map(o=>o.n.toLowerCase().replace(/ \(.*\)/,''));
+  const dn=all.filter(o=>o.mu<-.12).sort((a,b)=>a.mu-b.mu).slice(0,3).map(o=>o.n.toLowerCase().replace(/ \(.*\)/,''));
+  const list=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+  let h=`<p class="intro">Large studies link personality to how lives tend to go. The links are real but modest: the main replication project (Soto, 2019) reproduced about 85% of 48 outcomes, with effects typically around three-quarters of their original size. Traits tilt the odds; they never decide.</p>`;
+  h+=up.length||dn.length?`<p class="verdict">Your profile tilts most strongly ${up.length?`toward <em>higher ${list(up)}</em>`:''}${up.length&&dn.length?', and ':''}${dn.length?`toward <em>lower ${list(dn)}</em>`:''}.</p>`:`<p class="verdict">Your profile is balanced, so it tilts <em>few outcomes</em> far from average.</p>`;
+  h+=`<p class="legend">The dot is where a typical person with your profile lands among everyone on that outcome (the centre line is average). The band holds half of all people with your profile. The width of those bands is the point: most of what happens in a life is not in the traits.</p>`;
+  h+=`<div class="cols flow wide">`;
+  OUTCOMES.forEach(([dom,list])=>{
+    h+=`<div class="odom"><div class="sub">${dom}</div>`;
+    list.map(([n,w])=>({n,w,...outcomeStats(w)})).sort((a,b)=>b.mu-a.mu).forEach(o=>{
+      const txt=Math.abs(o.mu)<.1?'about average':`${ordinal(o.p)} percentile`;
+      const parts=Object.keys(o.w).map(k=>`${TRAITS.find(t=>t.k===k).name} ${o.w[k]>0?'+':'−'}${Math.abs(o.w[k]).toFixed(2)}`).join(', ');
+      h+=`<div class="oc" title="Typical link strengths: ${parts}"><div class="oc-h"><span>${esc(o.n)}</span><span>${txt}</span></div><span class="tk"><i class="mid"></i><i class="band" style="left:${o.lo.toFixed(1)}%;width:${(o.hi-o.lo).toFixed(1)}%"></i><i class="you ${o.mu<0?'dn':''}" style="left:${clamp(o.p,2,98).toFixed(1)}%"></i></span></div>`;
+    });
+    h+=`</div>`;
+  });
+  const L=[],S2=[],t=k=>zT(k);
+  if(t('C')>=.6)S2.push('Your conscientiousness is among the better personality predictors of health, work and long-term outcomes, so protect it from burnout.');
+  if(t('N')<=-.6)S2.push('Your emotional steadiness is a quiet asset for sleep, mood and relationships; just keep checking in with partners who feel things more intensely.');
+  if(t('E')>=.6)S2.push('Your sociability tends to bring wider networks and higher well-being; the cost is that quiet time can slip away.');
+  if(t('A')>=.6)S2.push('Your agreeableness tends to improve relationships and trust; make sure your own needs are voiced too.');
+  if(t('O')>=.6)S2.push('Your openness is linked to creative achievement and learning; structure helps ideas turn into finished things.');
+  if(t('N')>=.6)L.push('High neuroticism is not fixed in its costs. Regular sleep, exercise and skills from cognitive behavioral approaches reduce its effects more than they change the trait.');
+  if(t('C')<=-.6)L.push('For lower conscientiousness, outside structure beats willpower: shared deadlines, calendars, and “if X happens, then I will do Y” plans improve follow-through.');
+  if(t('E')<=-.6)L.push('A few recurring, low-pressure social rituals (a standing walk, a weekly dinner) offset much of the well-being gap linked to lower extraversion.');
+  if(t('A')<=-.6)L.push('Saying appreciation out loud and pausing before criticizing protects relationships for people who are naturally blunt or competitive.');
+  if(t('O')<=-.6)L.push('Small, scheduled novelty, such as one new place or dish a month, widens your options without costing the stability you value.');
+  if(!L.length)L.push('Nothing in your profile marks a strong risk. The levers with the best evidence apply to everyone: sleep, regular exercise, and investing in a few close relationships.');
+  h+=`<div class="odom"><div class="sub">Strengths and levers</div>`+S2.concat(L).map(x=>`<p>${x}</p>`).join('')+`</div></div>`;
+  h+=`<p class="note" style="margin-top:1.4rem">These are correlations, not causes, and some overlap by design (neuroticism and low well-being partly measure the same feelings). In one landmark comparison (Roberts et al., 2007), personality predicted mortality, divorce and occupational outcomes about as well as socioeconomic status or cognitive ability, and traits keep changing through adulthood.</p>`;
+  return h;
+}
+
+/* ---------- results shell ---------- */
+const CHAPTERS=[
+ ['portrait','Your portrait','The five traits, in plain language.',chPortrait,'solid'],
+ ['interests','What you may love doing','Interests and hobbies that tend to go with your profile.',chInterests,'moderate'],
+ ['music','Music you may love','Genres, sound and the way you listen.',chMusic,'moderate, small effects'],
+ ['careers','Work and vocation','Careers, and how you probably work.',chCareers,'moderate'],
+ ['everyday','Everyday tendencies','Stress, communication, money, habits, values.',chEveryday,'moderate'],
+ ['outcomes','Life outcomes','What your profile tends to predict about well-being, health, relationships and work.',chOutcomes,'moderate; effects small to medium'],
+ ['friends','Friends who fit','The kinds of people you’re likely to click with.',chFriends,'tentative'],
+ ['partners','Partners who fit','What research suggests about romantic compatibility.',chPartners,'tentative'],
+ ['coherence','Typical or unusual?','Do your traits follow the expected correlations?',chCoherence,'solid, approximate values'],
+ ['regions','Where in the world','Which regional profiles resemble yours, and which oppose it.',chRegions,'tentative, modeled'],
+ ['compare','Compare with someone','Overlay another person’s traits on yours.',chCompare,'tentative']];
+const chHTML=ch=>ch[3]()+`<p class="ev-note">Evidence for this chapter: ${ch[4]}.</p>`;
+function renderResults(){
+  uid=0;
+  const vb=$('#view-banner');vb.hidden=!viewing;
+  if(viewing)vb.innerHTML=`Viewing ${viewing.name?esc(viewing.name)+'’s':'someone else’s'} reading. <button class="linkbtn" data-stopview>Back to my profile</button>`;
+  $('#adjust-top').hidden=!!viewing;
+  updateShare();renderSaved();
+  $('#addfacets-top').hidden=S.touched||!!viewing;
+  $('#recap').innerHTML=TRAITS.map(t=>`${t.name} <span style="color:var(--ink)">${Math.round(S.traits[t.k])}</span>`).join(' &nbsp;·&nbsp; ')+(S.touched?' &nbsp;(with facets)':'');
+  $('#chapters').innerHTML=CHAPTERS.map(([id,t,s],i)=>`<article class="chapter" id="ch-${id}"><button class="ch-head" aria-expanded="false" data-ch="${id}"><span class="ch-n">${ROMAN[i]}</span><span class="ch-t">${t}</span><span class="ch-x" aria-hidden="true">+</span><span class="ch-s">${s}</span></button><div class="ch-body" hidden></div></article>`).join('');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const T=e.target;
+  if(viewing&&(T.closest('[data-quiz]')||(T.closest('[data-go]')&&T.closest('[data-go]').dataset.go!=='results')))restoreOwn();
+  if(T.closest('[data-stopview]')){restoreOwn();go('results');return;}
+  if(T.closest('#copy-code')){const i=$('#my-code');copyText(i.value,i).then(ok=>{$('#copy-msg').textContent=ok?'Copied.':'Select the code and copy it manually.';});return;}
+  if(T.closest('#open-btn')){openFromInput('#open-code','#open-msg',false);return;}
+  if(T.closest('#start-open')){openFromInput('#start-code-in','#start-msg',false);return;}
+  if(T.closest('#cmp-load')){openFromInput('#cmp-code','#cmp-msg',true);return;}
+  if(T.closest('#save-btn')){
+    const n=($('#save-name').value||'').trim()||(viewing&&viewing.name)||'Profile '+(PROFILES.length+1);
+    PROFILES.push({id:Date.now().toString(36),name:n.slice(0,24),facets:{...S.facets},touched:S.touched});savePF();$('#save-name').value='';renderSaved();return;}
+  const pf=T.closest('[data-pf-open],[data-pf-cmp],[data-pf-copy],[data-pf-del]');
+  if(pf){
+    const id=pf.dataset.pfOpen||pf.dataset.pfCmp||pf.dataset.pfCopy||pf.dataset.pfDel,p=PROFILES.find(x=>x.id===id);if(!p)return;
+    const prof=decodeProfile(encodeProfile(p.facets,p.touched,''));
+    if(pf.dataset.pfOpen){startViewing(prof,p.name);}
+    else if(pf.dataset.pfCmp){loadIntoCompare(prof,p.name);}
+    else if(pf.dataset.pfCopy){const tmp=document.createElement('input');tmp.value=encodeProfile(p.facets,p.touched,p.name);document.body.appendChild(tmp);copyText(tmp.value,tmp).then(()=>{tmp.remove();pf.textContent='Copied';});}
+    else{PROFILES=PROFILES.filter(x=>x.id!==id);savePF();renderSaved();}
+    return;
+  }
+  if(e.target.closest('[data-addfacets]')){
+    go('enter');const w=$('#facet-wrap');w.hidden=false;const tg=$('#facet-toggle');tg.textContent='Hide the facets';tg.setAttribute('aria-expanded','true');
+    const bn=$('#quiz-banner');bn.hidden=false;bn.textContent='Set the ten facets below, then choose “Show me what this suggests” to update your reading.';
+    setTimeout(()=>w.scrollIntoView({behavior:'smooth',block:'start'}),50);return;}
+  const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return;}
+  const q=e.target.closest('[data-quiz]');if(q){startQuiz(q.dataset.quiz);return;}
+  const c=e.target.closest('[data-ch]');
+  if(c){
+    const body=c.nextElementSibling,open=body.hidden;
+    if(open&&!body.innerHTML){const ch=CHAPTERS.find(x=>x[0]===c.dataset.ch);body.innerHTML=chHTML(ch);if(ch[0]==='compare'){TRAITS.forEach(t=>paint('o-'+t.k,S.other.traits[t.k]));renderCompare();renderSaved();}}
+    body.hidden=!open;c.setAttribute('aria-expanded',open);
+    if(open)setTimeout(()=>c.scrollIntoView({behavior:'smooth',block:'start'}),30);
+    return;
+  }
+  const t=e.target.closest('[data-toggle]');
+  if(t){const el=document.getElementById(t.dataset.toggle);if(el){const open=el.hidden;el.hidden=!open;t.setAttribute('aria-expanded',open);t.textContent=open?t.dataset.on:t.dataset.off;}return;}
+  const r=e.target.closest('[data-region]');
+  if(r){const reg=REG[+r.dataset.region],body=r.closest('.ch-body');
+    $$('[data-region]',body).forEach(x=>x.setAttribute('aria-pressed',x===r));
+    body.querySelector('#reg-detail').innerHTML=regDetailHTML(reg);}
+});
+function hm(e){const c=e.target.closest('[data-hm]');if(!c||c.dataset.hm==='self')return;const cap=$('#hm-cap');if(cap)cap.innerHTML=pairExplain(+c.dataset.i,+c.dataset.j);}
+document.addEventListener('mouseover',hm);document.addEventListener('focusin',hm);document.addEventListener('click',hm);
+
+/* ---------- codes, saved profiles, viewing ---------- */
+const B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+function encodeProfile(facets,touched,name){
+  const idx=KEYS.map(k=>Math.round((clamp(facets[k],1,99)-1)/98*63)),flag=touched?1:0;
+  let c=0;idx.forEach((v,i)=>c+=v*(i+1));c=(c+flag*11)%64;
+  let code='PR-'+idx.map(i=>B64[i]).join('')+B64[flag]+B64[c];
+  const nm=(name||'').trim().slice(0,24).replace(/\s+/g,'_');
+  return nm?code+'~'+nm:code;
+}
+function decodeProfile(str){
+  const m=/^PR-([A-Za-z0-9_-]{12})(?:~(.{1,24}))?$/.exec((str||'').trim());if(!m)return null;
+  const a=[...m[1]].map(c=>B64.indexOf(c)),idx=a.slice(0,10),flag=a[10],chk=a[11];
+  if(flag>1)return null;
+  let c=0;idx.forEach((v,i)=>c+=v*(i+1));if((c+flag*11)%64!==chk)return null;
+  const facets={},traits={};KEYS.forEach((k,i)=>facets[k]=1+idx[i]/63*98);
+  TRAITS.forEach(t=>{const[x,y]=T_FACETS[t.k];traits[t.k]=(facets[x]+facets[y])/2;});
+  return{facets,traits,touched:!!flag,name:(m[2]||'').replace(/_/g,' ')};
+}
+let PROFILES=[];const PSTORE='personality-reader-profiles-v1';
+try{PROFILES=JSON.parse(localStorage.getItem(PSTORE)||'[]')||[];}catch(e){PROFILES=[];}
+const savePF=()=>{try{localStorage.setItem(PSTORE,JSON.stringify(PROFILES));}catch(e){}};
+function copyText(text,input){
+  const fallback=()=>{try{input.focus();input.select();return document.execCommand('copy');}catch(e){return false;}};
+  if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text).then(()=>true,()=>fallback());
+  return Promise.resolve(fallback());
+}
+function currentCode(){return encodeProfile(S.facets,S.touched,viewing?viewing.name:S.myName);}
+function updateShare(){const i=$('#my-code');if(i)i.value=currentCode();const n=$('#code-name');if(n&&!viewing)n.value=S.myName||'';if(n)n.disabled=!!viewing;}
+function renderSaved(){
+  const l=$('#saved-list');if(l)l.innerHTML=PROFILES.length?PROFILES.map(p=>`<div class="pf"><b>${esc(p.name)}</b><button class="linkbtn" data-pf-open="${p.id}">Open reading</button><button class="linkbtn" data-pf-cmp="${p.id}">Compare with me</button><button class="linkbtn" data-pf-copy="${p.id}">Copy code</button><button class="linkbtn" data-pf-del="${p.id}">Delete</button></div>`).join(''):'<p class="note">Nothing saved yet. Save the current profile, or open someone’s code and save it.</p>';
+  const c=$('#cmp-saved');if(c)c.innerHTML=PROFILES.length?`<p class="note" style="margin:.4rem 0 0">Or use a saved profile: ${PROFILES.map(p=>`<button class="linkbtn" data-pf-cmp="${p.id}">${esc(p.name)}</button>`).join(' · ')}</p>`:'';
+}
+function restoreOwn(){
+  if(!viewing)return;S.traits=ownBackup.traits;S.facets=ownBackup.facets;S.touched=ownBackup.touched;
+  viewing=null;ownBackup=null;document.body.classList.remove('viewing');
+}
+function startViewing(p,label){
+  if(!viewing)ownBackup={traits:{...S.traits},facets:{...S.facets},touched:S.touched};
+  S.traits={...p.traits};S.facets={...p.facets};S.touched=p.touched;
+  viewing={name:(label||p.name||'').trim()};document.body.classList.add('viewing');go('results');
+}
+function loadIntoCompare(p,label){
+  S.other.traits=Object.fromEntries(TRAITS.map(t=>[t.k,Math.round(p.traits[t.k])]));
+  S.other.name=(label||p.name||S.other.name||'').trim();save();
+  TRAITS.forEach(t=>paint('o-'+t.k,S.other.traits[t.k]));
+  const n=$('#o-name');if(n)n.value=S.other.name;renderCompare();
+}
+function openFromInput(inputId,msgId,toCompare){
+  const p=decodeProfile($(inputId).value),msg=$(msgId);
+  if(!p){msg.textContent='That code didn’t check out. Codes start with PR- and are 15 characters or so; check for a missing character.';return;}
+  msg.textContent='';
+  if(toCompare)loadIntoCompare(p);else startViewing(p);
+}
+
+function applyTheme(t){document.documentElement.dataset.theme=t==='night'?'night':'';const b=$('#theme');if(b)b.textContent=t==='night'?'Day':'Night';}
+let theme='day';try{theme=localStorage.getItem('personality-theme')||'day';}catch(e){}
+applyTheme(theme);
+$('#theme').addEventListener('click',()=>{theme=theme==='night'?'day':'night';applyTheme(theme);try{localStorage.setItem('personality-theme',theme);}catch(e){}});
+document.addEventListener('click',e=>{if(!e.target.closest('#print-btn'))return;
+  $$('.chapter').forEach(c=>{const hd=$('.ch-head',c),bd=$('.ch-body',c);if(!bd.innerHTML){const ch=CHAPTERS.find(x=>x[0]===hd.dataset.ch);if(ch[0]!=='compare'){bd.innerHTML=chHTML(ch);}}if(bd.innerHTML){bd.hidden=false;hd.setAttribute('aria-expanded','true');}});
+  setTimeout(()=>window.print(),200);});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const map={'open-code':'#open-btn','start-code-in':'#start-open','cmp-code':'#cmp-load','save-name':'#save-btn'};
+  if(map[e.target.id]){e.preventDefault();$(map[e.target.id]).click();}
+});
+document.addEventListener('input',e=>{if(e.target.id==='code-name'){S.myName=e.target.value;save();updateShare();}});
+let fs=19;
+const setFs=v=>{fs=clamp(v,15,25);document.documentElement.style.fontSize=fs+'px';};
+$("#fsm").addEventListener('click',()=>setFs(fs-1));$("#fsp").addEventListener('click',()=>setFs(fs+1));
+
+go('start');
+window.__pr={S:()=>S,zT,zF,chapters:CHAPTERS};
+})();
+</script>
+</body>
+</html>
