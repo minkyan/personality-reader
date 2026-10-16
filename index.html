@@ -290,6 +290,7 @@ body.viewing [data-addfacets]{display:none}
 
 <section id="s-results" class="screen" hidden>
   <div id="view-banner" class="vb" hidden></div>
+  <p class="banner" id="quiz-note" hidden></p>
   <div class="kicker">Your reading</div>
   <h1 style="font-size:2.2rem">Choose what to unfold</h1>
   <p class="lede" style="margin-bottom:1rem">Open only the chapters you’re curious about. Correlations in personality research are real but modest, so read each one as “people like you often…”, never “you are…”.</p>
@@ -586,7 +587,7 @@ $('#reveal').addEventListener('click',()=>{
 });
 
 /* ---------- quiz ---------- */
-let quiz=null;
+let quiz=null,quizNote='';
 function startQuiz(kind){
   const items=(kind==='quick'?Q10:Q40).map(([k,t,rev])=>({k,t,rev}));
   quiz={kind,items,per:kind==='quick'?10:8,page:0,ans:{}};
@@ -637,10 +638,8 @@ function finishQuiz(){
     });
     TRAITS.forEach(t=>syncTrait(t.k));S.touched=true;
   }
-  save();go('enter');
-  const b=$('#quiz-banner');b.hidden=false;
-  b.textContent=kind==='quick'?'A sketch from your ten answers. The percentiles are rough estimates from approximate norms, so adjust anything that feels off, or try a validated test for precision.':'Your traits and facets from the detailed quiz. The percentiles are rough estimates from approximate norms, so adjust anything that feels off, or try a validated test such as the BFI-2 for precision.';
-  if(kind==='long'){$('#facet-wrap').hidden=false;$('#facet-toggle').textContent='Hide the facets';$('#facet-toggle').setAttribute('aria-expanded','true');}
+  quizNote=kind==='quick'?'A sketch from your ten answers. The percentiles are rough estimates from approximate norms, so adjust anything that feels off, or try a validated test for precision.':'Your traits and facets from the detailed quiz. The percentiles are rough estimates from approximate norms, so adjust anything that feels off, or try a validated test such as the BFI-2 for precision.';
+  S.seen=true;save();go('results');
 }
 
 /* ---------- results helpers ---------- */
@@ -1212,6 +1211,7 @@ function renderResults(){
   uid=0;
   const vb=$('#view-banner');vb.hidden=!viewing;
   if(viewing)vb.innerHTML=`Viewing ${viewing.name?esc(viewing.name)+'’s':'someone else’s'} reading. <button class="linkbtn" data-stopview>Back to my profile</button>`;
+  const qn=$('#quiz-note');qn.hidden=!quizNote||!!viewing;qn.textContent=quizNote;quizNote='';
   $('#adjust-top').hidden=!!viewing;
   updateShare();renderSaved();
   $('#addfacets-top').hidden=S.touched||!!viewing;
